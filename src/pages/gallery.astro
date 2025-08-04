@@ -136,12 +136,13 @@ const categories = ['all', 'portraits', 'events'];
             >
               <div class="overflow-hidden bg-gray-100">
                 <img 
-                  src={photo.src}
-                  srcset={photo.srcSet}
+                  src={index < 9 ? photo.src : ''}
+                  srcset={index < 9 ? photo.srcSet : ''}
+                  data-src={photo.src}
+                  data-srcset={photo.srcSet}
                   sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 350px"
                   alt={photo.name}
-                  class="w-full h-auto object-cover cursor-pointer transition-opacity duration-300 hover:opacity-90"
-                  loading={index < 9 ? "eager" : "lazy"}
+                  class={`w-full h-auto object-cover cursor-pointer transition-opacity duration-300 hover:opacity-90 ${index >= 9 ? 'lazy-image' : ''}`}
                   decoding={index < 9 ? "sync" : "async"}
                   data-photo-index={index}
                   data-full-src={photo.fullSrc}
@@ -223,6 +224,16 @@ const categories = ['all', 'portraits', 'events'];
       opacity: 0;
       transform: scale(0.95);
     }
+    
+    /* Lazy image placeholder */
+    .lazy-image {
+      background-color: #f3f4f6;
+      min-height: 200px;
+    }
+    
+    .lazy-image.loaded {
+      background-color: transparent;
+    }
   </style>
 
   <!-- Photo Modal -->
@@ -271,9 +282,12 @@ const categories = ['all', 'portraits', 'events'];
       console.log('Initializing Muuri gallery...');
       console.log('Muuri available:', typeof Muuri);
       
-      // Wait for images to load
-      const images = grid.querySelectorAll('img');
+      // Wait only for eager images to load (first 9)
+      const eagerImages = grid.querySelectorAll('img:not(.lazy-image)');
+      const allImages = grid.querySelectorAll('img');
       let loadedCount = 0;
+      
+      console.log('Total images:', allImages.length, 'Eager images:', eagerImages.length);
       
       function initMuuri() {
         console.log('Creating Muuri grid...');
@@ -285,6 +299,7 @@ const categories = ['all', 'portraits', 'events'];
           grid.style.gap = '16px';
           grid.style.opacity = '1';
           setupModal();
+          setupLazyLoading();
           return;
         }
         
@@ -312,6 +327,9 @@ const categories = ['all', 'portraits', 'events'];
         // Store globally for filtering
         window.muuriInstance = muuriGrid;
         
+        // Setup lazy loading
+        setupLazyLoading();
+        
         // Handle window resize for responsive layout
         let resizeTimeout;
         window.addEventListener('resize', () => {
@@ -324,16 +342,56 @@ const categories = ['all', 'portraits', 'events'];
         setupModal();
       }
       
+      function setupLazyLoading() {
+        const lazyImages = grid.querySelectorAll('.lazy-image');
+        console.log('Setting up lazy loading for', lazyImages.length, 'images');
+        
+        if (!lazyImages.length) return;
+        
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const img = entry.target;
+              const src = img.getAttribute('data-src');
+              const srcset = img.getAttribute('data-srcset');
+              
+              if (src) {
+                console.log('Loading lazy image:', src);
+                img.src = src;
+                if (srcset) {
+                  img.srcset = srcset;
+                }
+                
+                img.addEventListener('load', () => {
+                  img.classList.add('loaded');
+                  // Trigger Muuri layout if available
+                  if (window.muuriInstance) {
+                    window.muuriInstance.refreshItems().layout();
+                  }
+                });
+                
+                img.classList.remove('lazy-image');
+                observer.unobserve(img);
+              }
+            }
+          });
+        }, {
+          rootMargin: '50px' // Start loading 50px before image comes into view
+        });
+        
+        lazyImages.forEach(img => imageObserver.observe(img));
+      }
+      
       function checkAllLoaded() {
-        if (loadedCount >= images.length) {
-          console.log('All images loaded');
+        if (loadedCount >= eagerImages.length || eagerImages.length === 0) {
+          console.log('All eager images loaded, initializing Muuri');
           initMuuri();
         }
       }
       
-      // Handle image loading
-      images.forEach(img => {
-        if (img.complete) {
+      // Handle eager image loading only
+      eagerImages.forEach(img => {
+        if (img.complete && img.src) {
           loadedCount++;
         } else {
           img.addEventListener('load', () => {
