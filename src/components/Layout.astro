@@ -1,0 +1,76 @@
+---
+export interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title}</title>
+  <meta name="description" content="Professional photography portfolio" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Preload critical gallery images -->
+  <script>
+    if (window.location.pathname === '/' || window.location.pathname.includes('gallery')) {
+      // Preload first few gallery images
+      const preloadImages = [
+        '/photos/portrait-1.jpg',
+        '/photos/event-1.jpg',
+        '/photos/portrait-2.jpg'
+      ];
+      
+      preloadImages.forEach(src => {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = src;
+        document.head.appendChild(link);
+      });
+    }
+  </script>
+</head>
+<body class="bg-white text-gray-900 font-sans">
+  <style>
+    .font-serif { font-family: 'Crimson Text', serif; }
+  </style>
+  <nav class="fixed top-0 w-full bg-white/90 backdrop-blur-sm z-50 border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 py-4">
+      <div class="flex justify-between items-center">
+        <!-- Logo -->
+        <a href="/" class="text-xl font-light tracking-wide flex-1">BRUCE BYBEE</a>
+        
+        <!-- Center: Filter placeholder -->
+        <div id="nav-filter-container" class="flex-1 flex justify-center">
+          {Astro.url.pathname === '/gallery' && (
+            <div class="flex space-x-8">
+              <button class="filter-btn px-4 py-1 text-sm tracking-wide transition-all duration-300 ease-in-out rounded-sm bg-gray-900 text-white hover:bg-gray-800" data-category="all">All</button>
+              <button class="filter-btn px-4 py-1 text-sm tracking-wide transition-all duration-300 ease-in-out hover:bg-gray-100 rounded-sm" data-category="portraits">Portraits</button>
+              <button class="filter-btn px-4 py-1 text-sm tracking-wide transition-all duration-300 ease-in-out hover:bg-gray-100 rounded-sm" data-category="events">Events</button>
+            </div>
+          )}
+        </div>
+        
+        <!-- Right: Navigation -->
+        <div class="flex space-x-8 flex-1 justify-end">
+          <a href="/" class={`nav-link text-sm px-4 py-1 rounded-sm transition-all duration-300 ease-in-out ${Astro.url.pathname === '/' ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>Home</a>
+          <a href="/gallery" class={`nav-link text-sm px-4 py-1 rounded-sm transition-all duration-300 ease-in-out ${Astro.url.pathname === '/gallery' ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>Gallery</a>
+          <a href="/contact" class={`nav-link text-sm px-4 py-1 rounded-sm transition-all duration-300 ease-in-out ${Astro.url.pathname === '/contact' ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>Contact</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+  
+  
+  <main class="pt-20">
+    <slot />
+  </main>
+</body>
+</html>

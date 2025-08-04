@@ -1,0 +1,13 @@
+# Photos Directory
+
+Add your photography images to this directory. 
+
+Supported formats:
+- JPG/JPEG
+- PNG  
+- GIF
+- WebP
+
+The website will automatically detect and display all images placed in this folder.
+
+Simply drag and drop your photos here and run `npm run build` to update the gallery.

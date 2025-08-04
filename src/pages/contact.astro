@@ -1,0 +1,87 @@
+---
+import Layout from '../components/Layout.astro';
+import fs from 'fs';
+import path from 'path';
+
+// Look for Bruce's portrait photo
+function getBrucePhoto() {
+  const photosDir = path.join(process.cwd(), 'public/photos');
+  const portraitNames = ['bruce', 'portrait', 'headshot', 'profile'];
+  const extensions = ['.jpg', '.jpeg', '.png', '.webp'];
+  
+  if (!fs.existsSync(photosDir)) {
+    return null;
+  }
+
+  const files = fs.readdirSync(photosDir);
+  
+  // Look for files with portrait-related names
+  for (const name of portraitNames) {
+    for (const ext of extensions) {
+      const filename = `${name}${ext}`;
+      if (files.find(f => f.toLowerCase() === filename)) {
+        return `/photos/${files.find(f => f.toLowerCase() === filename)}`;
+      }
+    }
+  }
+  
+  return null;
+}
+
+const brucePhoto = getBrucePhoto();
+---
+
+<Layout title="Contact - Bruce Bybee Photography">
+  <section class="py-12 px-4">
+    <div class="max-w-3xl mx-auto text-center">
+      <h1 class="text-4xl font-light mb-12 tracking-wide">Contact</h1>
+      
+      <!-- Bruce's Photo -->
+      {brucePhoto && (
+        <div class="mb-12">
+          <div class="w-48 h-48 mx-auto mb-6 overflow-hidden rounded-full bg-gray-100">
+            <img 
+              src={brucePhoto} 
+              alt="Bruce Bybee" 
+              class="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      )}
+      
+      <!-- Contact Info -->
+      <div class="space-y-8">
+        <div>
+          <h2 class="text-2xl font-light mb-6">Get In Touch</h2>
+          <p class="text-gray-600 leading-relaxed text-lg max-w-2xl mx-auto">
+            I'd love to hear about your project and discuss how we can work together 
+            to create something beautiful.
+          </p>
+        </div>
+        
+        <div class="space-y-6 max-w-md mx-auto">
+          <div>
+            <h3 class="font-medium text-gray-900 mb-2">Email</h3>
+            <a href="mailto:bruce@example.com" class="text-gray-600 hover:text-gray-900 text-lg">
+              bruce@example.com
+            </a>
+          </div>
+          
+          <div>
+            <h3 class="font-medium text-gray-900 mb-2">Phone</h3>
+            <a href="tel:+1234567890" class="text-gray-600 hover:text-gray-900 text-lg">
+              (123) 456-7890
+            </a>
+          </div>
+          
+          <div>
+            <h3 class="font-medium text-gray-900 mb-2">Location</h3>
+            <p class="text-gray-600 text-lg">
+              City, State
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>

@@ -1,0 +1,270 @@
+---
+import Layout from '../components/Layout.astro';
+import { Image } from 'astro:assets';
+import fs from 'fs';
+import path from 'path';
+
+// Function to get all photos and categorize them
+function getPhotos() {
+  const photosDir = path.join(process.cwd(), 'public/photos');
+  
+  if (!fs.existsSync(photosDir)) {
+    return [];
+  }
+  
+  const files = fs.readdirSync(photosDir);
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+  
+  return files
+    .filter(file => {
+      // Skip hero image and bruce portrait
+      const lowerFile = file.toLowerCase();
+      if (lowerFile.startsWith('hero.') || lowerFile.startsWith('bruce.')) return false;
+      return imageExtensions.includes(path.extname(file).toLowerCase());
+    })
+    .map(file => {
+      const name = path.parse(file).name;
+      
+      // Determine category based on filename prefix
+      let category = 'other';
+      if (name.toLowerCase().startsWith('portrait-')) {
+        category = 'portraits';
+      } else if (name.toLowerCase().startsWith('event-')) {
+        category = 'events';
+      }
+      
+      // Extract group name for events (everything before last dash and number)
+      const groupMatch = name.match(/^(.+)-(\d+)$/);
+      const group = groupMatch ? groupMatch[1] : name;
+      
+      // Extract column span from filename (e.g., portrait-jane-2x.jpg)
+      let colSpan = 1;
+      const spanMatch = name.match(/-(\d)x$/);
+      if (spanMatch) {
+        colSpan = parseInt(spanMatch[1]);
+        // Remove the span suffix from the name
+        name = name.replace(/-\dx$/, '');
+      }
+      
+      return {
+        src: `/photos/${file}`,
+        name: name,
+        group: group,
+        category: category,
+        colSpan: colSpan,
+        filename: file
+      };
+    })
+    .sort((a, b) => {
+      // Sort by category first, then by group, then by name
+      if (a.category !== b.category) {
+        return a.category.localeCompare(b.category);
+      }
+      if (a.group !== b.group) {
+        return a.group.localeCompare(b.group);
+      }
+      return a.name.localeCompare(b.name);
+    });
+}
+
+const photos = getPhotos();
+const categories = ['all', 'portraits', 'events'];
+---
+
+<Layout title="Gallery - Bruce Bybee Photography">
+
+  <section class="py-12" style="padding-left: 15px; padding-right: 15px;">
+    <div class="mx-auto">
+      <h1 class="text-4xl font-light text-center mb-8 tracking-wide">Gallery</h1>
+      
+      {photos.length === 0 ? (
+        <div class="text-center py-20">
+          <p class="text-gray-600 text-lg">No photos found. Add images to the /public/photos/ directory.</p>
+          <p class="text-gray-500 text-sm mt-2">Supported formats: JPG, PNG, GIF, WebP</p>
+          <p class="text-gray-500 text-sm mt-1">Use prefix 'portrait-' or 'event-' to categorize photos</p>
+        </div>
+      ) : (
+        <>
+          <!-- Featured Photos (full width and 2x) -->
+          {photos.filter(photo => photo.colSpan > 1).map((photo) => (
+            <div 
+              class={`photo-item group cursor-pointer mb-2.5 ${
+                photo.colSpan === 3 ? 'w-full' : 'w-full lg:w-2/3'
+              }`}
+              data-category={photo.category}
+              data-colspan={photo.colSpan}
+            >
+              <div class="overflow-hidden bg-gray-100">
+                <img 
+                  src={photo.src}
+                  alt={photo.name}
+                  class="w-full h-auto object-cover cursor-pointer transition-opacity duration-300 hover:opacity-90"
+                  loading="eager"
+                  data-photo-index={photos.filter(p => p.colSpan > 1).indexOf(photo)}
+                />
+              </div>
+            </div>
+          ))}
+
+          <!-- Regular Photos - Masonry Layout -->
+          <div id="photo-grid" class="columns-1 md:columns-2 lg:columns-3 gap-2.5 opacity-0 transition-opacity duration-500">
+            {photos.filter(photo => photo.colSpan === 1).map((photo, index) => (
+              <div 
+                class="photo-item break-inside-avoid mb-2.5 group cursor-pointer"
+                data-category={photo.category}
+                data-colspan={photo.colSpan}
+              >
+                <div class="overflow-hidden bg-gray-100">
+                  <img 
+                    src={photo.src}
+                    alt={photo.name}
+                    class={`w-full h-auto object-cover cursor-pointer transition-opacity duration-300 hover:opacity-90 ${index >= 6 ? 'opacity-0' : ''}`}
+                    loading={index < 6 ? "eager" : "lazy"}
+                    onload={index >= 6 ? "this.style.opacity='1'; this.style.transition='opacity 0.3s ease-in-out';" : ""}
+                    data-photo-index={photos.filter(p => p.colSpan > 1).length + index}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  </section>
+
+  <!-- Photo Modal -->
+  <div id="photo-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden items-center justify-center">
+    <div class="relative w-full h-full flex items-center justify-center">
+      <!-- Close button -->
+      <button id="modal-close" class="absolute top-4 right-4 text-white text-3xl transition-colors duration-500 ease-in-out hover:text-gray-300 z-10">
+        ×
+      </button>
+      
+      <!-- Previous button container -->
+      <button id="modal-prev" class="absolute left-0 top-0 h-full w-16 flex items-center justify-center text-6xl z-10">
+        <span class="transform scale-y-150 text-white transition-colors duration-500 ease-in-out hover:text-gray-300">‹</span>
+      </button>
+      
+      <!-- Next button container -->
+      <button id="modal-next" class="absolute right-0 top-0 h-full w-16 flex items-center justify-center text-6xl z-0">
+        <span class="transform scale-y-150 text-white transition-colors duration-500 ease-in-out hover:text-gray-300">›</span>
+      </button>
+      
+      <!-- Image container -->
+      <div class="flex items-center justify-center w-full h-full px-16">
+        <img id="modal-image" src="" alt="" class="max-w-full max-h-[85vh] object-contain">
+      </div>
+    </div>
+  </div>
+  
+  <!-- Gallery loading script -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const photoGrid = document.getElementById('photo-grid');
+      const images = photoGrid.querySelectorAll('img');
+      const eagerImages = Array.from(images).slice(0, 6);
+      let loadedCount = 0;
+      
+      function checkEagerLoaded() {
+        loadedCount++;
+        if (loadedCount === eagerImages.length) {
+          photoGrid.style.opacity = '1';
+        }
+      }
+      
+      eagerImages.forEach(img => {
+        if (img.complete) {
+          checkEagerLoaded();
+        } else {
+          img.addEventListener('load', checkEagerLoaded);
+          img.addEventListener('error', checkEagerLoaded);
+        }
+      });
+      
+      setTimeout(() => {
+        if (photoGrid.style.opacity !== '1') {
+          photoGrid.style.opacity = '1';
+        }
+      }, 1000);
+
+      // Photo modal functionality
+      const modal = document.getElementById('photo-modal');
+      const modalImage = document.getElementById('modal-image');
+      const modalClose = document.getElementById('modal-close');
+      const modalPrev = document.getElementById('modal-prev');
+      const modalNext = document.getElementById('modal-next');
+      const allImages = document.querySelectorAll('[data-photo-index]');
+      let currentImageIndex = 0;
+
+      // Create photos array for navigation
+      const photosArray = Array.from(allImages).map(img => ({
+        src: img.src,
+        alt: img.alt,
+        index: parseInt(img.getAttribute('data-photo-index'))
+      })).sort((a, b) => a.index - b.index);
+
+      function openModal(index) {
+        currentImageIndex = index;
+        modalImage.src = photosArray[index].src;
+        modalImage.alt = photosArray[index].alt;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeModal() {
+        // Find the current image element and scroll to it
+        const currentImage = allImages[currentImageIndex];
+        if (currentImage) {
+          currentImage.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'center'
+          });
+        }
+        
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = 'auto';
+      }
+
+      function showNext() {
+        currentImageIndex = (currentImageIndex + 1) % photosArray.length;
+        modalImage.src = photosArray[currentImageIndex].src;
+        modalImage.alt = photosArray[currentImageIndex].alt;
+      }
+
+      function showPrev() {
+        currentImageIndex = (currentImageIndex - 1 + photosArray.length) % photosArray.length;
+        modalImage.src = photosArray[currentImageIndex].src;
+        modalImage.alt = photosArray[currentImageIndex].alt;
+      }
+
+      // Event listeners
+      allImages.forEach((img, index) => {
+        img.addEventListener('click', () => openModal(index));
+      });
+
+      modalClose.addEventListener('click', closeModal);
+      modalPrev.addEventListener('click', showPrev);
+      modalNext.addEventListener('click', showNext);
+
+      // Keyboard navigation
+      document.addEventListener('keydown', (e) => {
+        if (!modal.classList.contains('hidden')) {
+          if (e.key === 'Escape') closeModal();
+          if (e.key === 'ArrowLeft') showPrev();
+          if (e.key === 'ArrowRight') showNext();
+        }
+      });
+
+      // Close on background click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+    });
+  </script>
+  
+  <!-- Import gallery filter script -->
+  <script type="module" src="/src/scripts/gallery-filter.js"></script>
+</Layout>
