@@ -1,62 +1,94 @@
 ---
 import Layout from '../components/Layout.astro';
-import { Image } from 'astro:assets';
-import fs from 'fs';
-import path from 'path';
+import { v2 as cloudinary } from 'cloudinary';
 
-// Function to get all photos and categorize them
-function getPhotos() {
-  const photosDir = path.join(process.cwd(), 'public/photos');
-  
-  if (!fs.existsSync(photosDir)) {
-    return [];
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: import.meta.env.CLOUDINARY_CLOUD_NAME,
+  api_key: import.meta.env.CLOUDINARY_API_KEY,
+  api_secret: import.meta.env.CLOUDINARY_API_SECRET,
+});
+
+// Cache photos to reduce API calls
+let cachedPhotos = null;
+let cacheExpiry = 0;
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour cache
+
+// Function to get all photos from Cloudinary with caching
+async function getPhotos() {
+  // Return cached data if still valid
+  if (cachedPhotos && Date.now() < cacheExpiry) {
+    return cachedPhotos;
   }
-  
-  const files = fs.readdirSync(photosDir);
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-  
-  return files
-    .filter(file => {
-      // Skip hero image and bruce portrait
-      const lowerFile = file.toLowerCase();
-      if (lowerFile.startsWith('hero.') || lowerFile.startsWith('bruce.')) return false;
-      return imageExtensions.includes(path.extname(file).toLowerCase());
-    })
-    .map(file => {
-      const name = path.parse(file).name;
-      
-      // Determine category based on filename prefix
-      let category = 'other';
-      if (name.toLowerCase().startsWith('portrait-')) {
-        category = 'portraits';
-      } else if (name.toLowerCase().startsWith('event-')) {
-        category = 'events';
-      }
-      
-      // Extract group name for events (everything before last dash and number)
-      const groupMatch = name.match(/^(.+)-(\d+)$/);
-      const group = groupMatch ? groupMatch[1] : name;
-      
-      // Extract column span from filename (e.g., portrait-jane-2x.jpg)
-      let colSpan = 1;
-      const spanMatch = name.match(/-(\d)x$/);
-      if (spanMatch) {
-        colSpan = parseInt(spanMatch[1]);
-        // Remove the span suffix from the name
-        name = name.replace(/-\dx$/, '');
-      }
-      
-      return {
-        src: `/photos/${file}`,
-        name: name,
-        group: group,
-        category: category,
-        colSpan: colSpan,
-        filename: file
-      };
-    })
-    .sort((a, b) => {
-      // Sort by category first, then by group, then by name
+
+  try {
+    const result = await cloudinary.search
+      .expression('folder:bruce-bybee')
+      .sort_by('created_at', 'desc')
+      .max_results(50) // Reduced from 100 to save bandwidth
+      .execute();
+    
+    return result.resources
+      .filter(resource => {
+        // Filter out hero and bruce images in JavaScript instead
+        const filename = resource.public_id.split('/').pop();
+        const name = filename.replace(/\.[^/.]+$/, '');
+        return !name.toLowerCase().startsWith('hero') && !name.toLowerCase().startsWith('bruce');
+      })
+      .map(resource => {
+        const filename = resource.public_id.split('/').pop();
+        const name = filename.replace(/\.[^/.]+$/, ''); // Remove extension
+        
+        // Determine category based on filename prefix
+        let category = 'other';
+        if (name.toLowerCase().startsWith('portrait-')) {
+          category = 'portraits';
+        } else if (name.toLowerCase().startsWith('event-')) {
+          category = 'events';
+        }
+        
+        // Extract group name for events
+        const groupMatch = name.match(/^(.+)-(\d+)$/);
+        const group = groupMatch ? groupMatch[1] : name;
+        
+        // Extract column span from filename
+        let colSpan = 1;
+        const spanMatch = name.match(/-(\d)x$/);
+        if (spanMatch) {
+          colSpan = parseInt(spanMatch[1]);
+        }
+        
+          return {
+          // Crisp thumbnails (larger + WebP)
+          src: cloudinary.url(resource.public_id, {
+            width: 800,
+            crop: 'limit',
+            quality: 90,
+            format: 'webp'
+          }),
+          // Generate multiple sizes for srcset  
+          srcSet: [600, 800, 1200, 1600].map(w => 
+            `${cloudinary.url(resource.public_id, {
+              width: w,
+              crop: 'limit',
+              quality: 90,
+              format: 'webp'
+            })} ${w}w`
+          ).join(', '),
+          // High quality for modal
+          fullSrc: cloudinary.url(resource.public_id, {
+            width: 1800,
+            quality: 92,
+            format: 'webp'
+          }),
+          name: name,
+          group: group,
+          category: category,
+          colSpan: colSpan,
+          filename: filename
+        };
+      })
+      .sort((a, b) => {
       if (a.category !== b.category) {
         return a.category.localeCompare(b.category);
       }
@@ -65,9 +97,19 @@ function getPhotos() {
       }
       return a.name.localeCompare(b.name);
     });
+
+    // Cache the results
+    cachedPhotos = photos;
+    cacheExpiry = Date.now() + CACHE_DURATION;
+    return photos;
+    
+  } catch (error) {
+    console.error('Error fetching photos from Cloudinary:', error);
+    return [];
+  }
 }
 
-const photos = getPhotos();
+const photos = await getPhotos();
 const categories = ['all', 'portraits', 'events'];
 ---
 
@@ -84,56 +126,107 @@ const categories = ['all', 'portraits', 'events'];
           <p class="text-gray-500 text-sm mt-1">Use prefix 'portrait-' or 'event-' to categorize photos</p>
         </div>
       ) : (
-        <>
-          <!-- Featured Photos (full width and 2x) -->
-          {photos.filter(photo => photo.colSpan > 1).map((photo) => (
+        <!-- Photo Grid -->
+        <div id="photo-grid" class="opacity-0 transition-opacity duration-500">
+          {photos.map((photo, index) => (
             <div 
-              class={`photo-item group cursor-pointer mb-2.5 ${
-                photo.colSpan === 3 ? 'w-full' : 'w-full lg:w-2/3'
-              }`}
+              class="photo-item group cursor-pointer"
               data-category={photo.category}
               data-colspan={photo.colSpan}
             >
               <div class="overflow-hidden bg-gray-100">
                 <img 
                   src={photo.src}
+                  srcset={photo.srcSet}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 350px"
                   alt={photo.name}
                   class="w-full h-auto object-cover cursor-pointer transition-opacity duration-300 hover:opacity-90"
-                  loading="eager"
-                  data-photo-index={photos.filter(p => p.colSpan > 1).indexOf(photo)}
+                  loading={index < 9 ? "eager" : "lazy"}
+                  decoding={index < 9 ? "sync" : "async"}
+                  data-photo-index={index}
+                  data-full-src={photo.fullSrc}
                 />
               </div>
             </div>
           ))}
-
-          <!-- Regular Photos - Masonry Layout -->
-          <div id="photo-grid" class="columns-1 md:columns-2 lg:columns-3 gap-2.5 opacity-0 transition-opacity duration-500">
-            {photos.filter(photo => photo.colSpan === 1).map((photo, index) => (
-              <div 
-                class="photo-item break-inside-avoid mb-2.5 group cursor-pointer"
-                data-category={photo.category}
-                data-colspan={photo.colSpan}
-              >
-                <div class="overflow-hidden bg-gray-100">
-                  <img 
-                    src={photo.src}
-                    alt={photo.name}
-                    class={`w-full h-auto object-cover cursor-pointer transition-opacity duration-300 hover:opacity-90 ${index >= 6 ? 'opacity-0' : ''}`}
-                    loading={index < 6 ? "eager" : "lazy"}
-                    onload={index >= 6 ? "this.style.opacity='1'; this.style.transition='opacity 0.3s ease-in-out';" : ""}
-                    data-photo-index={photos.filter(p => p.colSpan > 1).length + index}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
+        </div>
       )}
     </div>
   </section>
 
+  <!-- Muuri CSS -->
+  <style>
+    #photo-grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      position: relative;
+    }
+
+    .photo-item {
+      position: absolute;
+      width: 100%;
+      margin: 8px;
+      box-sizing: border-box;
+    }
+    
+    /* Responsive column widths */
+    @media (min-width: 640px) {
+      .photo-item { width: calc(50% - 16px); }
+    }
+    
+    @media (min-width: 1024px) {
+      .photo-item { width: calc(33.3333% - 16px); }
+    }
+
+    .photo-item img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 4px;
+    }
+    
+    /* Cute loading animation */
+    .loading-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: white;
+      animation: bounce 1.4s ease-in-out infinite both;
+    }
+    
+    .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+    .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+    
+    @keyframes bounce {
+      0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+      }
+      40% {
+        transform: scale(1.2);
+        opacity: 1;
+      }
+    }
+    
+    /* Modal transitions */
+    #photo-modal.modal-open {
+      opacity: 1;
+    }
+    
+    #modal-image.image-loaded {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    #modal-image.image-loading {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  </style>
+
   <!-- Photo Modal -->
-  <div id="photo-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden items-center justify-center">
+  <div id="photo-modal" class="fixed inset-0 bg-black z-50 hidden items-center justify-center transition-all duration-300 ease-out opacity-0">
     <div class="relative w-full h-full flex items-center justify-center">
       <!-- Close button -->
       <button id="modal-close" class="absolute top-4 right-4 text-white text-3xl transition-colors duration-500 ease-in-out hover:text-gray-300 z-10">
@@ -150,43 +243,115 @@ const categories = ['all', 'portraits', 'events'];
         <span class="transform scale-y-150 text-white transition-colors duration-500 ease-in-out hover:text-gray-300">›</span>
       </button>
       
+      <!-- Loading animation -->
+      <div id="loading-animation" class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300" style="opacity: 0;">
+        <div class="flex space-x-2">
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+        </div>
+      </div>
+      
       <!-- Image container -->
       <div class="flex items-center justify-center w-full h-full px-16">
-        <img id="modal-image" src="" alt="" class="max-w-full max-h-[85vh] object-contain">
+        <img id="modal-image" src="" alt="" class="max-w-full max-h-[85vh] object-contain transition-all duration-300 ease-out transform">
       </div>
     </div>
   </div>
   
-  <!-- Gallery loading script -->
+  <!-- Muuri CDN -->
+  <script src="https://unpkg.com/muuri@0.9.5/dist/muuri.min.js"></script>
+  
+  <!-- Muuri gallery script -->
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const photoGrid = document.getElementById('photo-grid');
-      const images = photoGrid.querySelectorAll('img');
-      const eagerImages = Array.from(images).slice(0, 6);
+    document.addEventListener('DOMContentLoaded', () => {
+      const grid = document.getElementById('photo-grid');
+      if (!grid) return;
+      
+      console.log('Initializing Muuri gallery...');
+      console.log('Muuri available:', typeof Muuri);
+      
+      // Wait for images to load
+      const images = grid.querySelectorAll('img');
       let loadedCount = 0;
       
-      function checkEagerLoaded() {
-        loadedCount++;
-        if (loadedCount === eagerImages.length) {
-          photoGrid.style.opacity = '1';
+      function initMuuri() {
+        console.log('Creating Muuri grid...');
+        
+        if (typeof Muuri === 'undefined') {
+          console.error('Muuri not loaded, falling back to CSS grid');
+          grid.style.display = 'grid';
+          grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
+          grid.style.gap = '16px';
+          grid.style.opacity = '1';
+          setupModal();
+          return;
+        }
+        
+        // Initialize Muuri
+        const muuriGrid = new Muuri(grid, {
+          items: '.photo-item',
+          layoutOnInit: false,
+          dragEnabled: false,
+          layout: {
+            fillGaps: true,
+            horizontal: false,
+            alignRight: false,
+            alignBottom: false,
+            rounding: true
+          }
+        });
+        
+        // Initial layout
+        muuriGrid.layout();
+        
+        // Show gallery
+        grid.style.opacity = '1';
+        console.log('Muuri gallery ready');
+        
+        // Store globally for filtering
+        window.muuriInstance = muuriGrid;
+        
+        // Handle window resize for responsive layout
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => {
+            muuriGrid.refreshItems().layout();
+          }, 250);
+        });
+        
+        setupModal();
+      }
+      
+      function checkAllLoaded() {
+        if (loadedCount >= images.length) {
+          console.log('All images loaded');
+          initMuuri();
         }
       }
       
-      eagerImages.forEach(img => {
+      // Handle image loading
+      images.forEach(img => {
         if (img.complete) {
-          checkEagerLoaded();
+          loadedCount++;
         } else {
-          img.addEventListener('load', checkEagerLoaded);
-          img.addEventListener('error', checkEagerLoaded);
+          img.addEventListener('load', () => {
+            loadedCount++;
+            checkAllLoaded();
+          });
+          img.addEventListener('error', () => {
+            loadedCount++;
+            checkAllLoaded();
+          });
         }
       });
       
-      setTimeout(() => {
-        if (photoGrid.style.opacity !== '1') {
-          photoGrid.style.opacity = '1';
-        }
-      }, 1000);
-
+      // Check initially in case all images are cached
+      checkAllLoaded();
+    });
+    
+    function setupModal() {
       // Photo modal functionality
       const modal = document.getElementById('photo-modal');
       const modalImage = document.getElementById('modal-image');
@@ -196,20 +361,82 @@ const categories = ['all', 'portraits', 'events'];
       const allImages = document.querySelectorAll('[data-photo-index]');
       let currentImageIndex = 0;
 
-      // Create photos array for navigation
-      const photosArray = Array.from(allImages).map(img => ({
-        src: img.src,
+      // Create photos array for navigation with high-quality URLs
+      const photosArray = Array.from(allImages).map((img, index) => ({
+        src: img.getAttribute('data-full-src') || img.src, // Use full quality for modal
         alt: img.alt,
         index: parseInt(img.getAttribute('data-photo-index'))
       })).sort((a, b) => a.index - b.index);
 
+      // Preload cache for images
+      const preloadedImages = new Map();
+
+      function preloadImage(src) {
+        if (preloadedImages.has(src)) return preloadedImages.get(src);
+        
+        const img = new Image();
+        const promise = new Promise((resolve, reject) => {
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+        });
+        img.src = src;
+        preloadedImages.set(src, promise);
+        return promise;
+      }
+
+      function preloadAdjacentImages(index) {
+        // Preload previous image
+        if (index > 0) {
+          preloadImage(photosArray[index - 1].src);
+        }
+        // Preload next image
+        if (index < photosArray.length - 1) {
+          preloadImage(photosArray[index + 1].src);
+        }
+      }
+
       function openModal(index) {
         currentImageIndex = index;
-        modalImage.src = photosArray[index].src;
-        modalImage.alt = photosArray[index].alt;
+        
+        const loadingAnimation = document.getElementById('loading-animation');
+        
+        // Clear any previous image and show loading
+        modalImage.src = '';
+        modalImage.className = 'max-w-full max-h-[85vh] object-contain transition-all duration-300 ease-out transform image-loading';
+        loadingAnimation.style.opacity = '1';
+        
+        // Show modal with smooth transition
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         document.body.style.overflow = 'hidden';
+        
+        // Trigger smooth fade in
+        setTimeout(() => {
+          modal.classList.add('modal-open');
+        }, 10);
+        
+        // Load the new image
+        const newSrc = photosArray[index].src;
+        
+        const showImage = () => {
+          modalImage.src = newSrc;
+          modalImage.alt = photosArray[index].alt;
+          loadingAnimation.style.opacity = '0';
+          modalImage.className = 'max-w-full max-h-[85vh] object-contain transition-all duration-300 ease-out transform image-loaded';
+        };
+        
+        // Check if image is preloaded
+        if (preloadedImages.has(newSrc)) {
+          preloadedImages.get(newSrc).then(showImage).catch(showImage);
+        } else {
+          // Add a small delay to show the loading animation
+          setTimeout(() => {
+            showImage();
+          }, 200);
+        }
+        
+        // Preload adjacent images for smooth navigation
+        preloadAdjacentImages(index);
       }
 
       function closeModal() {
@@ -223,21 +450,95 @@ const categories = ['all', 'portraits', 'events'];
           });
         }
         
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        // Smooth fade out
+        modal.classList.remove('modal-open');
+        
+        // Wait for transition to complete before hiding
+        setTimeout(() => {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          
+          // Clear image to prevent flash when reopening
+          modalImage.src = '';
+          modalImage.className = 'max-w-full max-h-[85vh] object-contain transition-all duration-300 ease-out transform image-loading';
+          document.getElementById('loading-animation').style.opacity = '0';
+        }, 300);
+        
         document.body.style.overflow = 'auto';
       }
 
       function showNext() {
-        currentImageIndex = (currentImageIndex + 1) % photosArray.length;
-        modalImage.src = photosArray[currentImageIndex].src;
-        modalImage.alt = photosArray[currentImageIndex].alt;
+        const loadingAnimation = document.getElementById('loading-animation');
+        
+        // Fade out current image first
+        modalImage.className = 'max-w-full max-h-[85vh] object-contain transition-all duration-200 ease-out transform image-loading';
+        
+        // After fade out, clear image and show loading
+        setTimeout(() => {
+          modalImage.src = '';
+          loadingAnimation.style.opacity = '1';
+          
+          currentImageIndex = (currentImageIndex + 1) % photosArray.length;
+          const newSrc = photosArray[currentImageIndex].src;
+          
+          const showImage = () => {
+            modalImage.src = newSrc;
+            modalImage.alt = photosArray[currentImageIndex].alt;
+            loadingAnimation.style.opacity = '0';
+            // Fade in new image
+            setTimeout(() => {
+              modalImage.className = 'max-w-full max-h-[85vh] object-contain transition-all duration-200 ease-out transform image-loaded';
+            }, 50);
+          };
+          
+          // Check if image is preloaded
+          if (preloadedImages.has(newSrc)) {
+            preloadedImages.get(newSrc).then(showImage).catch(showImage);
+          } else {
+            // Add a small delay to show the loading animation
+            setTimeout(showImage, 100);
+          }
+          
+          // Preload next adjacent images
+          preloadAdjacentImages(currentImageIndex);
+        }, 200); // Wait for fade out to complete
       }
 
       function showPrev() {
-        currentImageIndex = (currentImageIndex - 1 + photosArray.length) % photosArray.length;
-        modalImage.src = photosArray[currentImageIndex].src;
-        modalImage.alt = photosArray[currentImageIndex].alt;
+        const loadingAnimation = document.getElementById('loading-animation');
+        
+        // Fade out current image first
+        modalImage.className = 'max-w-full max-h-[85vh] object-contain transition-all duration-200 ease-out transform image-loading';
+        
+        // After fade out, clear image and show loading
+        setTimeout(() => {
+          modalImage.src = '';
+          loadingAnimation.style.opacity = '1';
+          
+          currentImageIndex = (currentImageIndex - 1 + photosArray.length) % photosArray.length;
+          const newSrc = photosArray[currentImageIndex].src;
+          
+          const showImage = () => {
+            modalImage.src = newSrc;
+            modalImage.alt = photosArray[currentImageIndex].alt;
+            loadingAnimation.style.opacity = '0';
+            // Fade in new image
+            setTimeout(() => {
+              modalImage.className = 'max-w-full max-h-[85vh] object-contain transition-all duration-200 ease-out transform image-loaded';
+            }, 50);
+          };
+          
+          // Check if image is preloaded
+          if (preloadedImages.has(newSrc)) {
+            preloadedImages.get(newSrc).then(showImage).catch(showImage);
+          } else {
+            // Add a small delay to show the loading animation
+            setTimeout(showImage, 100);
+          }
+          
+          // Preload next adjacent images
+          preloadAdjacentImages(currentImageIndex);
+        }, 200); // Wait for fade out to complete
       }
 
       // Event listeners
@@ -262,7 +563,7 @@ const categories = ['all', 'portraits', 'events'];
       modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
       });
-    });
+    }
   </script>
   
   <!-- Import gallery filter script -->

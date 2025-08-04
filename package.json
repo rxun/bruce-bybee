@@ -11,7 +11,10 @@
   "dependencies": {
     "@astrojs/tailwind": "^6.0.2",
     "astro": "^5.12.8",
+    "cloudinary": "^2.7.0",
     "gsap": "^3.13.0",
+    "masonry-layout": "^4.2.2",
+    "muuri": "^0.9.5",
     "tailwindcss": "^3.4.17"
   }
 }
