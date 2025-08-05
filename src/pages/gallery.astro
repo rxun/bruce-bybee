@@ -279,21 +279,14 @@ const categories = ['all', 'portraits', 'events'];
       const grid = document.getElementById('photo-grid');
       if (!grid) return;
       
-      console.log('Initializing Muuri gallery...');
-      console.log('Muuri available:', typeof Muuri);
-      
       // Wait only for eager images to load (first 9)
       const eagerImages = grid.querySelectorAll('img:not(.lazy-image)');
       const allImages = grid.querySelectorAll('img');
       let loadedCount = 0;
       
-      console.log('Total images:', allImages.length, 'Eager images:', eagerImages.length);
-      
       function initMuuri() {
-        console.log('Creating Muuri grid...');
         
         if (typeof Muuri === 'undefined') {
-          console.error('Muuri not loaded, falling back to CSS grid');
           grid.style.display = 'grid';
           grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
           grid.style.gap = '16px';
@@ -322,7 +315,6 @@ const categories = ['all', 'portraits', 'events'];
         
         // Show gallery
         grid.style.opacity = '1';
-        console.log('Muuri gallery ready');
         
         // Store globally for filtering
         window.muuriInstance = muuriGrid;
@@ -341,14 +333,12 @@ const categories = ['all', 'portraits', 'events'];
         
         // Signal that Muuri is ready for filtering
         window.muuriReady = true;
-        console.log('Muuri is ready, filters can initialize');
         
         setupModal();
       }
       
       function setupLazyLoading() {
         const lazyImages = grid.querySelectorAll('.lazy-image');
-        console.log('Setting up lazy loading for', lazyImages.length, 'images');
         
         if (!lazyImages.length) return;
         
@@ -360,7 +350,6 @@ const categories = ['all', 'portraits', 'events'];
               const srcset = img.getAttribute('data-srcset');
               
               if (src) {
-                console.log('Loading lazy image:', src);
                 img.src = src;
                 if (srcset) {
                   img.srcset = srcset;
@@ -388,7 +377,6 @@ const categories = ['all', 'portraits', 'events'];
       
       function checkAllLoaded() {
         if (loadedCount >= eagerImages.length || eagerImages.length === 0) {
-          console.log('All eager images loaded, initializing Muuri');
           initMuuri();
         }
       }
@@ -638,23 +626,16 @@ const categories = ['all', 'portraits', 'events'];
       
       function tryInitialize() {
         attempts++;
-        console.log(`Filter initialization attempt ${attempts}`);
         
         const filterBtns = document.querySelectorAll('.filter-btn');
         const photoItems = document.querySelectorAll('.photo-item');
         
-        console.log('Filter buttons found:', filterBtns.length);
-        console.log('Photo items found:', photoItems.length);
-        console.log('Muuri instance available:', !!window.muuriInstance);
-        
         // Check if we have what we need
         if (filterBtns.length === 0 || photoItems.length === 0 || !window.muuriReady) {
           if (attempts < maxAttempts) {
-            console.log('Missing elements or Muuri not ready, retrying in 500ms');
             setTimeout(tryInitialize, 500);
             return;
           } else {
-            console.error('Failed to find filter elements or Muuri not ready after', maxAttempts, 'attempts');
             return;
           }
         }
@@ -666,7 +647,6 @@ const categories = ['all', 'portraits', 'events'];
         function filterItems(category) {
           const muuriInstance = window.muuriInstance;
           if (!muuriInstance) {
-            console.log('Muuri not available, using fallback filtering');
             // Fallback to simple show/hide
             photoItems.forEach((item) => {
               const itemCategory = item.getAttribute('data-category');
@@ -675,8 +655,6 @@ const categories = ['all', 'portraits', 'events'];
             });
             return;
           }
-          
-          console.log('Filtering with Muuri for category:', category);
           
           // Show filtered items with animation
           muuriInstance.filter(function(item) {
@@ -713,7 +691,6 @@ const categories = ['all', 'portraits', 'events'];
         
         // Initialize with "all" filter
         filterItems('all');
-        console.log('Filters initialized successfully');
       }
       
       // Start trying to initialize
