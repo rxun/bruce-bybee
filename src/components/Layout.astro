@@ -24,31 +24,81 @@ const { title } = Astro.props;
     .font-serif { font-family: 'Crimson Text', serif; }
   </style>
   <nav class="fixed top-0 w-full bg-white/90 backdrop-blur-sm z-50 border-b border-gray-100">
-    <div class="max-w-7xl mx-auto px-4 py-4">
-      <div class="flex justify-between items-center">
+    <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-4">
+      <!-- Mobile Layout -->
+      <div class="md:hidden flex justify-between items-center">
+        <!-- Logo -->
+        <a href="/" class="text-lg font-light tracking-wide">BRUCE BYBEE</a>
+        
+        <!-- Mobile menu button -->
+        <button id="mobile-menu-btn" class="p-1 rounded-md hover:bg-gray-100">
+          <span class="sr-only">Open menu</span>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Desktop Layout -->
+      <div class="hidden md:flex justify-between items-center">
         <!-- Logo -->
         <a href="/" class="text-xl font-light tracking-wide flex-1">BRUCE BYBEE</a>
         
         <!-- Center: Filter placeholder -->
         <div id="nav-filter-container" class="flex-1 flex justify-center">
           {(Astro.url.pathname === '/gallery' || Astro.url.pathname === '/gallery/') && (
-            <div class="flex space-x-8">
-              <button class="filter-btn px-4 py-1 text-sm tracking-wide transition-all duration-300 ease-in-out rounded-sm bg-gray-900 text-white hover:bg-gray-800" data-category="all">All</button>
-              <button class="filter-btn px-4 py-1 text-sm tracking-wide transition-all duration-300 ease-in-out hover:bg-gray-100 rounded-sm" data-category="portraits">Portraits</button>
-              <button class="filter-btn px-4 py-1 text-sm tracking-wide transition-all duration-300 ease-in-out hover:bg-gray-100 rounded-sm" data-category="events">Events</button>
+            <div class="flex space-x-6">
+              <button class="filter-btn px-3 py-1 text-sm tracking-wide transition-all duration-300 ease-in-out rounded-sm bg-gray-900 text-white hover:bg-gray-800" data-category="all">All</button>
+              <button class="filter-btn px-3 py-1 text-sm tracking-wide transition-all duration-300 ease-in-out hover:bg-gray-100 rounded-sm" data-category="portraits">Portraits</button>
+              <button class="filter-btn px-3 py-1 text-sm tracking-wide transition-all duration-300 ease-in-out hover:bg-gray-100 rounded-sm" data-category="events">Events</button>
             </div>
           )}
         </div>
         
         <!-- Right: Navigation -->
-        <div class="flex space-x-8 flex-1 justify-end">
-          <a href="/" class={`nav-link text-sm px-4 py-1 rounded-sm transition-all duration-300 ease-in-out ${Astro.url.pathname === '/' ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>Home</a>
-          <a href="/gallery" class={`nav-link text-sm px-4 py-1 rounded-sm transition-all duration-300 ease-in-out ${(Astro.url.pathname === '/gallery' || Astro.url.pathname === '/gallery/') ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>Gallery</a>
-          <a href="/contact" class={`nav-link text-sm px-4 py-1 rounded-sm transition-all duration-300 ease-in-out ${Astro.url.pathname === '/contact' ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>Contact</a>
+        <div class="flex space-x-6 flex-1 justify-end">
+          <a href="/" class={`nav-link text-sm px-3 py-1 rounded-sm transition-all duration-300 ease-in-out ${Astro.url.pathname === '/' ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>Home</a>
+          <a href="/gallery" class={`nav-link text-sm px-3 py-1 rounded-sm transition-all duration-300 ease-in-out ${(Astro.url.pathname === '/gallery' || Astro.url.pathname === '/gallery/') ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>Gallery</a>
+          <a href="/contact" class={`nav-link text-sm px-3 py-1 rounded-sm transition-all duration-300 ease-in-out ${Astro.url.pathname === '/contact' ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>Contact</a>
+        </div>
+      </div>
+
+      <!-- Mobile Menu (Hidden by default) -->
+      <div id="mobile-menu" class="md:hidden hidden mt-4 pb-4 border-t border-gray-100">
+        <div class="flex flex-col space-y-3 pt-4">
+          <a href="/" class={`text-sm px-3 py-2 rounded-sm transition-all duration-300 ${Astro.url.pathname === '/' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100'}`}>Home</a>
+          <a href="/gallery" class={`text-sm px-3 py-2 rounded-sm transition-all duration-300 ${(Astro.url.pathname === '/gallery' || Astro.url.pathname === '/gallery/') ? 'bg-gray-900 text-white' : 'hover:bg-gray-100'}`}>Gallery</a>
+          <a href="/contact" class={`text-sm px-3 py-2 rounded-sm transition-all duration-300 ${Astro.url.pathname === '/contact' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100'}`}>Contact</a>
+          
+          <!-- Mobile filters (show only on gallery page) -->
+          {(Astro.url.pathname === '/gallery' || Astro.url.pathname === '/gallery/') && (
+            <div class="pt-3 border-t border-gray-200">
+              <p class="text-xs text-gray-500 mb-2 px-3">Filter Photos</p>
+              <div class="flex flex-col space-y-2">
+                <button class="filter-btn text-left px-3 py-2 text-sm rounded-sm bg-gray-900 text-white" data-category="all">All Photos</button>
+                <button class="filter-btn text-left px-3 py-2 text-sm rounded-sm hover:bg-gray-100" data-category="portraits">Portraits</button>
+                <button class="filter-btn text-left px-3 py-2 text-sm rounded-sm hover:bg-gray-100" data-category="events">Events</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   </nav>
+
+  <!-- Mobile menu toggle script -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+      const mobileMenu = document.getElementById('mobile-menu');
+      
+      if (mobileMenuBtn && mobileMenu) {
+        mobileMenuBtn.addEventListener('click', () => {
+          mobileMenu.classList.toggle('hidden');
+        });
+      }
+    });
+  </script>
   
   
   <main class="pt-20">
