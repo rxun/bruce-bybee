@@ -22,3 +22,9 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# Local image compression script
+compress-images.js
+
+# Local photos folder (using Cloudinary instead)
+public/photos/

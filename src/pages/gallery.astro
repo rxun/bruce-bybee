@@ -22,43 +22,44 @@ async function getPhotos() {
   }
 
   try {
+    // Search recursively in bruce-bybee folder to get all subfolders
     const result = await cloudinary.search
-      .expression('folder:bruce-bybee')
+      .expression('folder:bruce-bybee/*')
       .sort_by('created_at', 'desc')
-      .max_results(50) // Reduced from 100 to save bandwidth
+      .max_results(100)
       .execute();
-    
-    return result.resources
+
+    const photos = result.resources
       .filter(resource => {
-        // Filter out hero and bruce images in JavaScript instead
-        const filename = resource.public_id.split('/').pop();
-        const name = filename.replace(/\.[^/.]+$/, '');
+        // Filter out hero and bruce images
+        const name = resource.public_id.replace(/\.[^/.]+$/, '');
         return !name.toLowerCase().startsWith('hero') && !name.toLowerCase().startsWith('bruce');
       })
       .map(resource => {
-        const filename = resource.public_id.split('/').pop();
-        const name = filename.replace(/\.[^/.]+$/, ''); // Remove extension
-        
-        // Determine category based on filename prefix
+        const name = resource.public_id.replace(/\.[^/.]+$/, ''); // Remove extension
+
+        // Extract category from asset_folder (e.g., bruce-bybee/Portraits → portraits)
         let category = 'other';
-        if (name.toLowerCase().startsWith('portrait-')) {
-          category = 'portraits';
-        } else if (name.toLowerCase().startsWith('event-')) {
-          category = 'events';
+        if (resource.asset_folder) {
+          const folderParts = resource.asset_folder.split('/');
+          // Get the subfolder name (after bruce-bybee)
+          if (folderParts.length >= 2) {
+            category = folderParts[1].toLowerCase();
+          }
         }
-        
-        // Extract group name for events
+
+        // Extract group name from filename prefix (for secondary grouping within folder)
         const groupMatch = name.match(/^(.+)-(\d+)$/);
         const group = groupMatch ? groupMatch[1] : name;
-        
+
         // Extract column span from filename
         let colSpan = 1;
         const spanMatch = name.match(/-(\d)x$/);
         if (spanMatch) {
           colSpan = parseInt(spanMatch[1]);
         }
-        
-          return {
+
+        return {
           // Crisp thumbnails (larger + WebP)
           src: cloudinary.url(resource.public_id, {
             width: 800,
@@ -66,8 +67,8 @@ async function getPhotos() {
             quality: 90,
             format: 'webp'
           }),
-          // Generate multiple sizes for srcset  
-          srcSet: [600, 800, 1200, 1600].map(w => 
+          // Generate multiple sizes for srcset
+          srcSet: [600, 800, 1200, 1600].map(w =>
             `${cloudinary.url(resource.public_id, {
               width: w,
               crop: 'limit',
@@ -85,24 +86,26 @@ async function getPhotos() {
           group: group,
           category: category,
           colSpan: colSpan,
-          filename: filename
+          filename: resource.public_id,
+          folder: resource.asset_folder || 'bruce-bybee' // Store full folder path
         };
       })
       .sort((a, b) => {
-      if (a.category !== b.category) {
-        return a.category.localeCompare(b.category);
-      }
-      if (a.group !== b.group) {
-        return a.group.localeCompare(b.group);
-      }
-      return a.name.localeCompare(b.name);
-    });
+        // Sort by category (folder), then by group (prefix), then by name
+        if (a.category !== b.category) {
+          return a.category.localeCompare(b.category);
+        }
+        if (a.group !== b.group) {
+          return a.group.localeCompare(b.group);
+        }
+        return a.name.localeCompare(b.name);
+      });
 
     // Cache the results
     cachedPhotos = photos;
     cacheExpiry = Date.now() + CACHE_DURATION;
     return photos;
-    
+
   } catch (error) {
     console.error('Error fetching photos from Cloudinary:', error);
     return [];
@@ -110,10 +113,12 @@ async function getPhotos() {
 }
 
 const photos = await getPhotos();
-const categories = ['all', 'portraits', 'events'];
+// Dynamically build categories from discovered folders
+const discoveredCategories = [...new Set(photos.map(p => p.category))].sort();
+const categories = ['all', ...discoveredCategories];
 ---
 
-<Layout title="Gallery - Bruce Bybee Photography">
+<Layout title="Gallery - Bruce Bybee Photography" categories={categories}>
 
   <section class="py-12 px-4 md:px-6 lg:px-8">
     <div class="mx-auto">

@@ -1,9 +1,16 @@
 ---
 export interface Props {
   title: string;
+  categories?: string[];
 }
 
-const { title } = Astro.props;
+const { title, categories = [] } = Astro.props;
+
+// Helper to capitalize category names for display
+function formatCategoryName(cat: string): string {
+  if (cat === 'all') return 'All';
+  return cat.charAt(0).toUpperCase() + cat.slice(1);
+}
 ---
 
 <!DOCTYPE html>
@@ -46,11 +53,16 @@ const { title } = Astro.props;
         
         <!-- Center: Filter placeholder -->
         <div id="nav-filter-container" class="flex-1 flex justify-center">
-          {(Astro.url.pathname === '/gallery' || Astro.url.pathname === '/gallery/') && (
+          {(Astro.url.pathname === '/gallery' || Astro.url.pathname === '/gallery/') && categories.length > 0 && (
             <div class="flex space-x-6">
-              <button class="filter-btn px-3 py-1 text-sm tracking-wide transition-all duration-300 ease-in-out rounded-sm bg-gray-900 text-white hover:bg-gray-800" data-category="all">All</button>
-              <button class="filter-btn px-3 py-1 text-sm tracking-wide transition-all duration-300 ease-in-out hover:bg-gray-100 rounded-sm" data-category="portraits">Portraits</button>
-              <button class="filter-btn px-3 py-1 text-sm tracking-wide transition-all duration-300 ease-in-out hover:bg-gray-100 rounded-sm" data-category="events">Events</button>
+              {categories.map((cat, index) => (
+                <button
+                  class={`filter-btn px-3 py-1 text-sm tracking-wide transition-all duration-300 ease-in-out rounded-sm ${index === 0 ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+                  data-category={cat}
+                >
+                  {formatCategoryName(cat)}
+                </button>
+              ))}
             </div>
           )}
         </div>
@@ -71,13 +83,18 @@ const { title } = Astro.props;
           <a href="/contact" class={`text-sm px-3 py-2 rounded-sm transition-all duration-300 ${Astro.url.pathname === '/contact' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100'}`}>Contact</a>
           
           <!-- Mobile filters (show only on gallery page) -->
-          {(Astro.url.pathname === '/gallery' || Astro.url.pathname === '/gallery/') && (
+          {(Astro.url.pathname === '/gallery' || Astro.url.pathname === '/gallery/') && categories.length > 0 && (
             <div class="pt-3 border-t border-gray-200">
               <p class="text-xs text-gray-500 mb-2 px-3">Filter Photos</p>
               <div class="flex flex-col space-y-2">
-                <button class="filter-btn text-left px-3 py-2 text-sm rounded-sm bg-gray-900 text-white" data-category="all">All Photos</button>
-                <button class="filter-btn text-left px-3 py-2 text-sm rounded-sm hover:bg-gray-100" data-category="portraits">Portraits</button>
-                <button class="filter-btn text-left px-3 py-2 text-sm rounded-sm hover:bg-gray-100" data-category="events">Events</button>
+                {categories.map((cat, index) => (
+                  <button
+                    class={`filter-btn text-left px-3 py-2 text-sm rounded-sm ${index === 0 ? 'bg-gray-900 text-white' : 'hover:bg-gray-100'}`}
+                    data-category={cat}
+                  >
+                    {cat === 'all' ? 'All Photos' : formatCategoryName(cat)}
+                  </button>
+                ))}
               </div>
             </div>
           )}
