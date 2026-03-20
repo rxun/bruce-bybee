@@ -1,8 +1,6 @@
 ---
 import Layout from '../components/Layout.astro';
 import { v2 as cloudinary } from 'cloudinary';
-import fs from 'fs';
-import path from 'path';
 
 // Configure Cloudinary
 cloudinary.config({
@@ -10,6 +8,28 @@ cloudinary.config({
   api_key: import.meta.env.CLOUDINARY_API_KEY,
   api_secret: import.meta.env.CLOUDINARY_API_SECRET,
 });
+
+// Fetch hero image from Cloudinary (looks for any file named "hero" in bruce-bybee/)
+async function getHeroImage() {
+  try {
+    const result = await cloudinary.search
+      .expression('folder:bruce-bybee AND filename=hero')
+      .max_results(1)
+      .execute();
+
+    const resource = result.resources?.[0];
+    if (!resource) return null;
+
+    return cloudinary.url(resource.public_id, {
+      format: 'webp',
+      quality: 90,
+      width: 1920,
+      crop: 'limit',
+    });
+  } catch {
+    return null;
+  }
+}
 
 // Fetch featured images from Cloudinary
 async function getFeaturedImages() {
@@ -35,33 +55,13 @@ async function getFeaturedImages() {
       }),
       alt: resource.public_id.split('/').pop().replace(/[-_]/g, ' '),
     }));
-  } catch (e) {
-    console.error('Error fetching featured images:', e);
+  } catch {
     return [];
   }
 }
 
+const heroImage = await getHeroImage();
 const featuredImages = await getFeaturedImages();
-
-// Check for hero image
-function getHeroImage() {
-  const photosDir = path.join(process.cwd(), 'public/photos');
-  const heroExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
-
-  if (!fs.existsSync(photosDir)) {
-    return null;
-  }
-
-  for (const ext of heroExtensions) {
-    const heroPath = path.join(photosDir, `hero${ext}`);
-    if (fs.existsSync(heroPath)) {
-      return `/photos/hero${ext}`;
-    }
-  }
-  return null;
-}
-
-const heroImage = getHeroImage();
 ---
 
 <Layout title="Bruce Bybee Photography">
