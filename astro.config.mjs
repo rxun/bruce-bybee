@@ -1,29 +1,30 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
-import tailwind from '@astrojs/tailwind';
+import tailwindcss from '@tailwindcss/vite';
+import vercel from '@astrojs/vercel';
 
 // https://astro.build/config
 export default defineConfig({
-  integrations: [tailwind()],
+  adapter: vercel(),
+  output: 'static',
+  integrations: [],
   // Disable Vercel image optimization to avoid costs
   image: {
     service: {
       entrypoint: 'astro/assets/services/noop'
     }
   },
-  // Static generation to avoid serverless costs
-  output: 'static',
   // Performance optimizations
   build: {
     inlineStylesheets: 'auto',
-    assets: '_astro' // Keep assets organized
+    assets: '_astro'
   },
   vite: {
+    plugins: [tailwindcss()],
     build: {
       cssCodeSplit: false,
       rollupOptions: {
         output: {
-          // Minimize asset file names to reduce CDN costs
           assetFileNames: 'assets/[name].[hash:8][extname]'
         }
       }

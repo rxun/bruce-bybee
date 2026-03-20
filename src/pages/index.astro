@@ -1,17 +1,57 @@
 ---
 import Layout from '../components/Layout.astro';
+import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: import.meta.env.CLOUDINARY_CLOUD_NAME,
+  api_key: import.meta.env.CLOUDINARY_API_KEY,
+  api_secret: import.meta.env.CLOUDINARY_API_SECRET,
+});
+
+// Fetch featured images from Cloudinary
+async function getFeaturedImages() {
+  try {
+    const result = await cloudinary.search
+      .expression('folder:bruce-bybee/featured_images/*')
+      .sort_by('created_at', 'desc')
+      .max_results(10)
+      .execute();
+
+    return result.resources.map(resource => ({
+      src: cloudinary.url(resource.public_id, {
+        format: 'webp',
+        quality: 90,
+        width: 800,
+        crop: 'limit',
+      }),
+      srcLarge: cloudinary.url(resource.public_id, {
+        format: 'webp',
+        quality: 92,
+        width: 1200,
+        crop: 'limit',
+      }),
+      alt: resource.public_id.split('/').pop().replace(/[-_]/g, ' '),
+    }));
+  } catch (e) {
+    console.error('Error fetching featured images:', e);
+    return [];
+  }
+}
+
+const featuredImages = await getFeaturedImages();
 
 // Check for hero image
 function getHeroImage() {
   const photosDir = path.join(process.cwd(), 'public/photos');
   const heroExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
-  
+
   if (!fs.existsSync(photosDir)) {
     return null;
   }
-  
+
   for (const ext of heroExtensions) {
     const heroPath = path.join(photosDir, `hero${ext}`);
     if (fs.existsSync(heroPath)) {
@@ -25,46 +65,83 @@ const heroImage = getHeroImage();
 ---
 
 <Layout title="Bruce Bybee Photography">
-  <section class="min-h-screen flex items-start justify-start relative">
+  <!-- Hero Section -->
+  <section class="min-h-screen flex items-center justify-center relative">
     <!-- Hero Background -->
     {heroImage && (
       <div class="absolute inset-0 z-0">
-        <img 
-          src={heroImage} 
-          alt="Hero" 
+        <img
+          src={heroImage}
+          alt="Hero"
           class="w-full h-full object-cover"
         />
         <div class="absolute inset-0 bg-black/30"></div>
       </div>
     )}
-    
+
     <!-- Content -->
-    <div class="relative z-10 max-w-7xl mx-auto px-8 pt-32 md:pt-40">
-      <h1 class={`text-6xl md:text-8xl lg:text-9xl font-serif tracking-[0.2em] mb-8 ${heroImage ? 'text-white' : 'text-gray-900'}`}>
-        BRUCE<br />BYBEE
+    <div class="relative z-10 max-w-3xl mx-auto px-8 text-center">
+      <h1 class={`text-3xl md:text-5xl lg:text-6xl font-serif leading-tight mb-6 ${heroImage ? 'text-white' : 'text-gray-900'}`}>
+        Intentional Photography for New York's Cultural Landscape
       </h1>
-      <div class="space-x-6 ml-1">
-        <a 
-          href="/gallery" 
-          class={`inline-block px-8 py-3 text-sm tracking-wide transition-colors ${
-            heroImage 
-              ? 'bg-white text-black hover:bg-gray-100' 
-              : 'bg-gray-900 text-white hover:bg-gray-800'
-          }`}
-        >
-          View Work
-        </a>
-        <a 
-          href="/contact" 
-          class={`inline-block px-8 py-3 text-sm tracking-wide transition-colors ${
-            heroImage 
-              ? 'border border-white text-white hover:bg-white hover:text-black' 
-              : 'border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
-          }`}
-        >
-          Contact
-        </a>
-      </div>
+      <p class={`text-base md:text-lg tracking-wide ${heroImage ? 'text-white/85' : 'text-gray-600'}`}>
+        Manhattan-based photographer specializing in performances, exhibitions, and portraiture.
+      </p>
     </div>
+  </section>
+
+  <!-- Intro Section -->
+  <section class="max-w-3xl mx-auto px-8 py-24">
+    <p class="text-lg md:text-xl leading-relaxed text-gray-700">
+      Bruce Bybee is a Manhattan-based photographer working with artists, institutions, and cultural organizations. He creates atmospheric, precise imagery for live performances, exhibitions, public programs, and portrait sessions. With a background in film and over a decade of experience spanning analog and digital photography, he brings clarity, structure, and consistency to every assignment. Available for commissions in Manhattan, Brooklyn, and beyond.
+    </p>
+  </section>
+
+  <!-- Featured Work Section -->
+  <section class="max-w-7xl mx-auto px-8 py-24 border-t border-gray-100">
+    <h2 class="text-3xl md:text-4xl font-serif mb-12 text-center">Featured Work</h2>
+    {featuredImages.length > 0 ? (
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {featuredImages.map((image) => (
+          <div class="overflow-hidden">
+            <img
+              src={image.src}
+              srcset={`${image.src} 800w, ${image.srcLarge} 1200w`}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              alt={image.alt}
+              class="w-full h-72 object-cover hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+            />
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p class="text-center text-gray-500">Featured images coming soon.</p>
+    )}
+  </section>
+
+  <!-- Services Preview Section -->
+  <section class="max-w-3xl mx-auto px-8 py-24 border-t border-gray-100">
+    <h2 class="text-3xl md:text-4xl font-serif mb-12 text-center">Services</h2>
+    <ul class="space-y-6 text-lg text-gray-700">
+      <li><span class="font-semibold text-gray-900">Live Events & Performances:</span> Concerts, theater, readings and public programs</li>
+      <li><span class="font-semibold text-gray-900">Exhibitions & Installations:</span> Documentation of gallery and museum environments</li>
+      <li><span class="font-semibold text-gray-900">Portraiture:</span> Artist portraits and professional headshots</li>
+      <li><span class="font-semibold text-gray-900">Touring Artists:</span> Press-ready photography and performance documentation for visiting productions</li>
+    </ul>
+    <div class="text-center mt-12">
+      <a href="/services" class="inline-block px-8 py-3 text-sm tracking-wide bg-gray-900 text-white hover:bg-gray-800 transition-colors">
+        View Services
+      </a>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section class="max-w-3xl mx-auto px-8 py-24 border-t border-gray-100">
+    <h2 class="text-3xl md:text-4xl font-serif mb-4 text-center">Contact</h2>
+    <h3 class="text-xl md:text-2xl font-serif text-gray-600 mb-6 text-center">Let's Work Together</h3>
+    <p class="text-lg text-gray-700 text-center">
+      Tell me about your project, date, and location. I typically respond within 24 hours.
+    </p>
   </section>
 </Layout>

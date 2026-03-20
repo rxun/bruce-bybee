@@ -1,32 +1,50 @@
 # Photography Portfolio
 
-A clean, responsive photography portfolio built with Astro and Tailwind CSS.
+A clean, responsive photography portfolio built with Astro, Tailwind CSS, and Cloudinary.
 
 ## Features
 
-- **Fast Loading**: Static site generation with optimized images
+- **Fast Loading**: Static site generation with Cloudinary-optimized images
 - **Responsive Design**: Works perfectly on desktop, tablet, and mobile
-- **Auto Photo Detection**: Just drop images in `/public/photos/` and they appear
-- **Image Optimization**: Automatic compression and format conversion
+- **Cloudinary Integration**: Images served via CDN with automatic optimization
+- **Folder-Based Categories**: Organize photos by Cloudinary folders
+- **Dynamic Filters**: Filter buttons automatically generated from your folder structure
 - **Clean Design**: Minimal, professional layout focused on your photography
 
 ## Getting Started
 
+### Cloudinary Setup
+
+1. Create a [Cloudinary](https://cloudinary.com) account (free tier available)
+2. Create a `.env` file in the project root with your credentials:
+   ```
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
+   ```
+
 ### Adding Your Photos
 
-1. Download your photos from Google Drive (or wherever they're stored)
-2. Place them in the `/public/photos/` directory
-3. Supported formats: JPG, PNG, GIF, WebP
-4. **Hero Background**: Name one photo `hero.jpg` (or .png/.webp) to use as homepage background
-5. **Contact Portrait**: Name a photo `bruce.jpg` for the contact page
-6. **Categories**: Use prefixes to categorize photos:
-   - `portrait-` for portrait sessions
-   - `event-` for events
-7. **Column Spans** (optional): Add `-2x` or `-3x` to make photos span multiple columns:
-   - `portrait-jane.jpg` - 1 column (default)
-   - `event-wedding-2x.jpg` - spans 2 columns
-   - `event-hero-3x.jpg` - spans full width (3 columns)
-8. The gallery will automatically detect, organize, and display them
+Upload photos to Cloudinary under a root folder (e.g., `bruce-bybee/`):
+
+1. **Folder Structure**: Create subfolders to categorize your photos:
+   - `bruce-bybee/Portraits/` → Category: "Portraits"
+   - `bruce-bybee/Events/` → Category: "Events"
+   - `bruce-bybee/Weddings/` → Category: "Weddings"
+   - Photos in `bruce-bybee/` (root) → Category: "Other"
+
+2. **Filter Buttons**: Automatically generated based on your subfolder names
+
+3. **Naming Conventions** (optional):
+   - **Grouping**: Use prefixes with numbers to group related photos:
+     - `wedding-jane-1.jpg`, `wedding-jane-2.jpg` → grouped together
+     - `portrait-client-01.jpg`, `portrait-client-02.jpg` → grouped together
+   - **Column Spans**: Add `-2x` or `-3x` suffix for wider photos:
+     - `photo.jpg` - 1 column (default)
+     - `photo-2x.jpg` - spans 2 columns
+     - `photo-3x.jpg` - spans full width (3 columns)
+
+4. **Excluded Images**: Files starting with `hero` or `bruce` are filtered out (used for homepage/contact page)
 
 ### Customizing Your Site
 
@@ -59,29 +77,33 @@ npm run preview
 
 1. Push your code to GitHub
 2. Connect your repository to Vercel
-3. Deploy automatically - that's it!
+3. Add your Cloudinary environment variables in Vercel's project settings
+4. Deploy automatically - that's it!
 
-Vercel will automatically rebuild your site whenever you:
-- Add new photos to the `/public/photos/` folder
-- Make any changes to the code
-- Push changes to GitHub
+Vercel will automatically rebuild your site whenever you push changes to GitHub. New photos uploaded to Cloudinary will appear after the 1-hour cache expires or on the next rebuild.
 
 ## File Structure
 
 ```
 src/
 ├── components/
-│   └── Layout.astro          # Navigation and site layout
+│   └── Layout.astro          # Navigation, filters, and site layout
 ├── pages/
 │   ├── index.astro           # Homepage
-│   ├── gallery.astro         # Photo grid
+│   ├── gallery.astro         # Photo grid (Cloudinary integration)
 │   └── contact.astro         # Contact information
-public/
-└── photos/                   # Put your images here
+.env                          # Cloudinary credentials (not committed)
 ```
+
+## How It Works
+
+1. Photos are fetched from Cloudinary's Search API
+2. Categories are determined by the subfolder each image is in
+3. Images are served via Cloudinary CDN with automatic WebP conversion and responsive sizing
+4. Results are cached for 1 hour to reduce API calls
 
 ## Need Help?
 
-The site is designed to be maintenance-free. Just add photos to the `/public/photos/` folder and they'll appear automatically.
+The site is designed to be maintenance-free. Upload photos to Cloudinary folders and they'll appear automatically with the correct category.
 
 For any technical issues, contact [your name/email here].

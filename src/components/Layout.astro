@@ -11,6 +11,7 @@ function formatCategoryName(cat: string): string {
   if (cat === 'all') return 'All';
   return cat.charAt(0).toUpperCase() + cat.slice(1);
 }
+import '../styles/global.css';
 ---
 
 <!DOCTYPE html>
@@ -71,7 +72,9 @@ function formatCategoryName(cat: string): string {
         <div class="flex space-x-6 flex-1 justify-end">
           <a href="/" class={`nav-link text-sm px-3 py-1 rounded-sm transition-all duration-300 ease-in-out ${Astro.url.pathname === '/' ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>Home</a>
           <a href="/gallery" class={`nav-link text-sm px-3 py-1 rounded-sm transition-all duration-300 ease-in-out ${(Astro.url.pathname === '/gallery' || Astro.url.pathname === '/gallery/') ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>Gallery</a>
-          <a href="/contact" class={`nav-link text-sm px-3 py-1 rounded-sm transition-all duration-300 ease-in-out ${Astro.url.pathname === '/contact' ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>Contact</a>
+          <a href="/services" class={`nav-link text-sm px-3 py-1 rounded-sm transition-all duration-300 ease-in-out ${(Astro.url.pathname === '/services' || Astro.url.pathname === '/services/') ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>Services</a>
+          <a href="/about" class={`nav-link text-sm px-3 py-1 rounded-sm transition-all duration-300 ease-in-out ${(Astro.url.pathname === '/about' || Astro.url.pathname === '/about/') ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>About</a>
+          <a href="/contact" class={`nav-link text-sm px-3 py-1 rounded-sm transition-all duration-300 ease-in-out ${(Astro.url.pathname === '/contact' || Astro.url.pathname === '/contact/') ? 'bg-gray-900 text-white hover:bg-gray-800' : 'hover:bg-gray-100'}`}>Contact</a>
         </div>
       </div>
 
@@ -80,7 +83,9 @@ function formatCategoryName(cat: string): string {
         <div class="flex flex-col space-y-3 pt-4">
           <a href="/" class={`text-sm px-3 py-2 rounded-sm transition-all duration-300 ${Astro.url.pathname === '/' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100'}`}>Home</a>
           <a href="/gallery" class={`text-sm px-3 py-2 rounded-sm transition-all duration-300 ${(Astro.url.pathname === '/gallery' || Astro.url.pathname === '/gallery/') ? 'bg-gray-900 text-white' : 'hover:bg-gray-100'}`}>Gallery</a>
-          <a href="/contact" class={`text-sm px-3 py-2 rounded-sm transition-all duration-300 ${Astro.url.pathname === '/contact' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100'}`}>Contact</a>
+          <a href="/services" class={`text-sm px-3 py-2 rounded-sm transition-all duration-300 ${(Astro.url.pathname === '/services' || Astro.url.pathname === '/services/') ? 'bg-gray-900 text-white' : 'hover:bg-gray-100'}`}>Services</a>
+          <a href="/about" class={`text-sm px-3 py-2 rounded-sm transition-all duration-300 ${(Astro.url.pathname === '/about' || Astro.url.pathname === '/about/') ? 'bg-gray-900 text-white' : 'hover:bg-gray-100'}`}>About</a>
+          <a href="/contact" class={`text-sm px-3 py-2 rounded-sm transition-all duration-300 ${(Astro.url.pathname === '/contact' || Astro.url.pathname === '/contact/') ? 'bg-gray-900 text-white' : 'hover:bg-gray-100'}`}>Contact</a>
           
           <!-- Mobile filters (show only on gallery page) -->
           {(Astro.url.pathname === '/gallery' || Astro.url.pathname === '/gallery/') && categories.length > 0 && (
