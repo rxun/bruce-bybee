@@ -1,0 +1,282 @@
+---
+import Layout from '../../components/Layout.astro';
+import { v2 as cloudinary } from 'cloudinary';
+
+cloudinary.config({
+  cloud_name: import.meta.env.CLOUDINARY_CLOUD_NAME,
+  api_key: import.meta.env.CLOUDINARY_API_KEY,
+  api_secret: import.meta.env.CLOUDINARY_API_SECRET,
+});
+
+export function getStaticPaths() {
+  const categories = [
+    { slug: 'Concerts', folder: 'bruce-bybee/Concerts', label: 'Concerts' },
+    { slug: 'Theater', folder: 'bruce-bybee/Theater', label: 'Theater & Performance' },
+    { slug: 'Exhibitions', folder: 'bruce-bybee/Exhibitions', label: 'Exhibitions' },
+    { slug: 'Talks and Public Programs', folder: 'bruce-bybee/Talks and Public Programs', label: 'Talks & Public Programs' },
+    { slug: 'Portraits', folder: 'bruce-bybee/Portraits', label: 'Portraiture' },
+    { slug: 'Conferences and Special Events', folder: 'bruce-bybee/Conferences and Special Events', label: 'Special Events' },
+  ];
+
+  return categories.map((cat) => ({
+    params: { category: cat.slug },
+    props: { folder: cat.folder, label: cat.label },
+  }));
+}
+
+const { category } = Astro.params;
+const { folder, label } = Astro.props;
+
+// Fetch all photos from this category's folder
+let photos: { src: string; srcSet: string; fullSrc: string; name: string }[] = [];
+try {
+  const result = await cloudinary.search
+    .expression(`folder:"${folder}"`)
+    .sort_by('created_at', 'desc')
+    .max_results(100)
+    .execute();
+
+  photos = result.resources.map((resource: any) => {
+    const name = resource.public_id.split('/').pop().replace(/\.[^/.]+$/, '');
+    return {
+      src: cloudinary.url(resource.public_id, {
+        width: 800,
+        crop: 'limit',
+        quality: 90,
+        format: 'webp',
+      }),
+      srcSet: [600, 800, 1200, 1600]
+        .map(
+          (w) =>
+            `${cloudinary.url(resource.public_id, {
+              width: w,
+              crop: 'limit',
+              quality: 90,
+              format: 'webp',
+            })} ${w}w`
+        )
+        .join(', '),
+      fullSrc: cloudinary.url(resource.public_id, {
+        width: 1800,
+        quality: 92,
+        format: 'webp',
+      }),
+      name,
+    };
+  });
+} catch (e) {
+  console.error('Error fetching photos:', e);
+}
+---
+
+<Layout title={`${label} - Bruce Bybee Photography`}>
+  <section class="max-w-6xl mx-auto px-8 py-24">
+    <a href="/gallery" class="inline-flex items-center text-sm text-gray-500 hover:text-gray-900 transition-colors mb-8">
+      &larr; Back to Gallery
+    </a>
+    <h1 class="text-3xl md:text-4xl font-serif mb-12">{label}</h1>
+
+    <!-- Photo Grid -->
+    {photos.length > 0 ? (
+      <div class="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
+        {photos.map((photo, index) => (
+          <div class="break-inside-avoid overflow-hidden cursor-pointer">
+            <img
+              src={index < 9 ? photo.src : ''}
+              srcset={index < 9 ? photo.srcSet : ''}
+              data-src={photo.src}
+              data-srcset={photo.srcSet}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              alt={photo.name}
+              class={`w-full h-auto object-cover transition-opacity duration-300 hover:opacity-90 ${index >= 9 ? 'lazy-image' : ''}`}
+              data-photo-index={index}
+              data-full-src={photo.fullSrc}
+              loading={index < 9 ? 'eager' : 'lazy'}
+            />
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p class="text-center text-gray-500 py-20">Photos coming soon.</p>
+    )}
+  </section>
+
+  <!-- Photo Modal -->
+  <div id="photo-modal" class="fixed inset-0 bg-black z-50 hidden items-center justify-center transition-all duration-300 ease-out opacity-0">
+    <div class="relative w-full h-full flex items-center justify-center">
+      <button id="modal-close" class="absolute top-4 right-4 text-white text-3xl transition-colors duration-500 ease-in-out hover:text-gray-300 z-20">
+        &times;
+      </button>
+      <button id="modal-prev" class="absolute left-0 top-16 bottom-16 w-16 flex items-center justify-center text-6xl z-10">
+        <span class="transform scale-y-150 text-white transition-colors duration-500 ease-in-out hover:text-gray-300">&lsaquo;</span>
+      </button>
+      <button id="modal-next" class="absolute right-0 top-16 bottom-16 w-16 flex items-center justify-center text-6xl z-10">
+        <span class="transform scale-y-150 text-white transition-colors duration-500 ease-in-out hover:text-gray-300">&rsaquo;</span>
+      </button>
+      <div id="loading-animation" class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300" style="opacity: 0;">
+        <div class="flex space-x-2">
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+        </div>
+      </div>
+      <div class="flex items-center justify-center w-full h-full px-16">
+        <img id="modal-image" src="" alt="" class="max-w-full max-h-[85vh] object-contain transition-all duration-300 ease-out transform">
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .lazy-image {
+      background-color: #f3f4f6;
+      min-height: 200px;
+    }
+    .lazy-image.loaded {
+      background-color: transparent;
+    }
+    #photo-modal.modal-open {
+      opacity: 1;
+    }
+    #modal-image.image-loaded {
+      opacity: 1;
+      transform: scale(1);
+    }
+    #modal-image.image-loading {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    .loading-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: white;
+      animation: bounce 1.4s ease-in-out infinite both;
+    }
+    .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+    .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+      40% { transform: scale(1.2); opacity: 1; }
+    }
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Lazy loading
+      const lazyImages = document.querySelectorAll('.lazy-image');
+      if (lazyImages.length > 0) {
+        const observer = new IntersectionObserver((entries, obs) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const img = entry.target as HTMLImageElement;
+              const src = img.getAttribute('data-src');
+              const srcset = img.getAttribute('data-srcset');
+              if (src) {
+                img.src = src;
+                if (srcset) img.srcset = srcset;
+                img.addEventListener('load', () => img.classList.add('loaded'));
+                img.classList.remove('lazy-image');
+                obs.unobserve(img);
+              }
+            }
+          });
+        }, { rootMargin: '100px' });
+        lazyImages.forEach(img => observer.observe(img));
+      }
+
+      // Modal
+      const modal = document.getElementById('photo-modal')!;
+      const modalImage = document.getElementById('modal-image') as HTMLImageElement;
+      const modalClose = document.getElementById('modal-close')!;
+      const modalPrev = document.getElementById('modal-prev')!;
+      const modalNext = document.getElementById('modal-next')!;
+      const loadingAnimation = document.getElementById('loading-animation')!;
+      const allImages = document.querySelectorAll('[data-photo-index]');
+      let currentIndex = 0;
+
+      const photosArray = Array.from(allImages).map((img) => ({
+        src: img.getAttribute('data-full-src') || (img as HTMLImageElement).src,
+        alt: (img as HTMLImageElement).alt,
+      }));
+
+      const preloaded = new Map<string, Promise<HTMLImageElement>>();
+      function preload(src: string) {
+        if (preloaded.has(src)) return preloaded.get(src)!;
+        const img = new Image();
+        const p = new Promise<HTMLImageElement>((res, rej) => { img.onload = () => res(img); img.onerror = rej; });
+        img.src = src;
+        preloaded.set(src, p);
+        return p;
+      }
+
+      function preloadAdjacent(i: number) {
+        if (i > 0) preload(photosArray[i - 1].src);
+        if (i < photosArray.length - 1) preload(photosArray[i + 1].src);
+      }
+
+      function showImage(i: number) {
+        currentIndex = i;
+        const src = photosArray[i].src;
+        modalImage.src = '';
+        modalImage.className = 'max-w-full max-h-[85vh] object-contain transition-all duration-300 ease-out transform image-loading';
+        loadingAnimation.style.opacity = '1';
+
+        const reveal = () => {
+          modalImage.src = src;
+          modalImage.alt = photosArray[i].alt;
+          loadingAnimation.style.opacity = '0';
+          modalImage.className = 'max-w-full max-h-[85vh] object-contain transition-all duration-300 ease-out transform image-loaded';
+        };
+
+        if (preloaded.has(src)) {
+          preloaded.get(src)!.then(reveal).catch(reveal);
+        } else {
+          setTimeout(reveal, 150);
+        }
+        preloadAdjacent(i);
+      }
+
+      function openModal(i: number) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => modal.classList.add('modal-open'), 10);
+        showImage(i);
+      }
+
+      function closeModal() {
+        const current = allImages[currentIndex] as HTMLElement;
+        if (current) current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        modal.classList.remove('modal-open');
+        setTimeout(() => {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          modalImage.src = '';
+          modalImage.className = 'max-w-full max-h-[85vh] object-contain transition-all duration-300 ease-out transform image-loading';
+          loadingAnimation.style.opacity = '0';
+        }, 300);
+        document.body.style.overflow = 'auto';
+      }
+
+      function navigate(dir: number) {
+        modalImage.className = 'max-w-full max-h-[85vh] object-contain transition-all duration-200 ease-out transform image-loading';
+        setTimeout(() => {
+          currentIndex = (currentIndex + dir + photosArray.length) % photosArray.length;
+          showImage(currentIndex);
+        }, 200);
+      }
+
+      allImages.forEach((img, i) => img.addEventListener('click', () => openModal(i)));
+      modalClose.addEventListener('click', closeModal);
+      modalPrev.addEventListener('click', () => navigate(-1));
+      modalNext.addEventListener('click', () => navigate(1));
+      modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+      document.addEventListener('keydown', (e) => {
+        if (modal.classList.contains('hidden')) return;
+        if (e.key === 'Escape') closeModal();
+        if (e.key === 'ArrowLeft') navigate(-1);
+        if (e.key === 'ArrowRight') navigate(1);
+      });
+    });
+  </script>
+</Layout>

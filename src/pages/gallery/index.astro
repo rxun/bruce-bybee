@@ -1,0 +1,82 @@
+---
+import Layout from '../../components/Layout.astro';
+import { v2 as cloudinary } from 'cloudinary';
+
+cloudinary.config({
+  cloud_name: import.meta.env.CLOUDINARY_CLOUD_NAME,
+  api_key: import.meta.env.CLOUDINARY_API_KEY,
+  api_secret: import.meta.env.CLOUDINARY_API_SECRET,
+});
+
+const categories = [
+  { label: 'Concerts', folder: 'bruce-bybee/Concerts' },
+  { label: 'Theater & Performance', folder: 'bruce-bybee/Theater' },
+  { label: 'Exhibitions', folder: 'bruce-bybee/Exhibitions' },
+  { label: 'Talks & Public Programs', folder: 'bruce-bybee/Talks and Public Programs' },
+  { label: 'Portraiture', folder: 'bruce-bybee/Portraits' },
+  { label: 'Special Events', folder: 'bruce-bybee/Conferences and Special Events' },
+];
+
+// Fetch one preview image per category
+async function getCategoryPreviews() {
+  const previews = await Promise.all(
+    categories.map(async (cat) => {
+      try {
+        const result = await cloudinary.search
+          .expression(`folder:"${cat.folder}"`)
+          .sort_by('created_at', 'desc')
+          .max_results(1)
+          .execute();
+
+        const resource = result.resources?.[0];
+        const previewSrc = resource
+          ? cloudinary.url(resource.public_id, {
+              width: 800,
+              height: 600,
+              crop: 'fill',
+              gravity: 'auto',
+              quality: 85,
+              format: 'webp',
+            })
+          : null;
+
+        return {
+          ...cat,
+          previewSrc,
+        };
+      } catch {
+        return { ...cat, previewSrc: null };
+      }
+    })
+  );
+  return previews;
+}
+
+const categoryPreviews = await getCategoryPreviews();
+---
+
+<Layout title="Gallery - Bruce Bybee Photography">
+  <section class="max-w-6xl mx-auto px-8 py-24">
+    <h1 class="text-3xl md:text-4xl font-serif mb-12 text-center">Gallery</h1>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {categoryPreviews.map((cat) => (
+        <a href={`/gallery/${encodeURIComponent(cat.folder.split('/').pop()!)}`} class="group block relative aspect-[4/3] overflow-hidden">
+          {cat.previewSrc ? (
+            <img
+              src={cat.previewSrc}
+              alt={cat.label}
+              class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div class="absolute inset-0 bg-gray-200"></div>
+          )}
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+          <span class="absolute bottom-4 left-4 text-white text-lg font-serif tracking-wide">
+            {cat.label}
+          </span>
+        </a>
+      ))}
+    </div>
+  </section>
+</Layout>
