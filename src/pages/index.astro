@@ -13,7 +13,7 @@ cloudinary.config({
 async function getHeroImage() {
   try {
     const result = await cloudinary.search
-      .expression('folder:bruce-bybee AND filename=hero')
+      .expression('folder:bruce-bybee AND display_name=hero')
       .max_results(1)
       .execute();
 
