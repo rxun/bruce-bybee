@@ -18,7 +18,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Send notification to Bruce
     await resend.emails.send({
-      from: 'Bruce Bybee Photography <onboarding@resend.dev>',
+      from: 'Bruce Bybee Photography <noreply@inbound.brucebybee.com>',
       to: 'brucectbybee@gmail.com',
       subject: `Contact Inquiry - ${name}`,
       html: `
@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Send confirmation to the inquirer
     await resend.emails.send({
-      from: 'Bruce Bybee Photography <onboarding@resend.dev>',
+      from: 'Bruce Bybee Photography <noreply@inbound.brucebybee.com>',
       to: email,
       subject: 'Thank you for your inquiry',
       html: `
