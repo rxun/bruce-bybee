@@ -1,7 +1,27 @@
 ---
 import Layout from '../components/Layout.astro';
 ---
+// Fetch hero image from Cloudinary (looks for any file named "profile" in bruce-bybee/)
+async function getHeroImage() {
+  try {
+    const result = await cloudinary.search
+      .expression('folder:bruce-bybee AND display_name=hero')
+      .max_results(1)
+      .execute();
 
+    const resource = result.resources?.[0];
+    if (!resource) return null;
+
+    return cloudinary.url(resource.public_id, {
+      format: 'webp',
+      quality: 90,
+      width: 1920,
+      crop: 'limit',
+    });
+  } catch {
+    return null;
+  }
+}
 <Layout title="About - Bruce Bybee Photography">
   <section class="max-w-3xl mx-auto px-8 py-24">
     <h1 class="text-3xl md:text-4xl font-serif mb-12 text-center">About</h1>
