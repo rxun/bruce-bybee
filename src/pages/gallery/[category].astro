@@ -28,7 +28,7 @@ const { category } = Astro.params;
 const { folder, label } = Astro.props;
 
 // Fetch all photos from this category's folder
-let photos: { src: string; srcSet: string; fullSrc: string; name: string }[] = [];
+let photos: { src: string; srcSet: string; fullSrc: string; name: string; width: number; height: number }[] = [];
 try {
   const result = await cloudinary.search
     .expression(`folder:"${folder}"`)
@@ -62,6 +62,8 @@ try {
         format: 'webp',
       }),
       name,
+      width: resource.width,
+      height: resource.height,
     };
   });
 } catch (e) {
@@ -78,9 +80,12 @@ try {
 
     <!-- Photo Grid -->
     {photos.length > 0 ? (
-      <div class="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
+      <div id="photo-grid" class="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4 opacity-0">
         {photos.map((photo, index) => (
-          <div class="break-inside-avoid overflow-hidden cursor-pointer">
+          <div
+            class="photo-item-animate break-inside-avoid overflow-hidden cursor-pointer"
+            style={`animation-delay: ${Math.min(index, 15) * 0.06}s`}
+          >
             <img
               src={index < 9 ? photo.src : ''}
               srcset={index < 9 ? photo.srcSet : ''}
@@ -88,6 +93,8 @@ try {
               data-srcset={photo.srcSet}
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               alt={photo.name}
+              width={photo.width}
+              height={photo.height}
               class={`w-full h-auto object-cover transition-opacity duration-300 hover:opacity-90 ${index >= 9 ? 'lazy-image' : ''}`}
               data-photo-index={index}
               data-full-src={photo.fullSrc}
@@ -127,12 +134,33 @@ try {
   </div>
 
   <style>
-    .lazy-image {
+    .columns-1 img {
+      color: transparent;
       background-color: #f3f4f6;
+    }
+    .lazy-image {
       min-height: 200px;
     }
     .lazy-image.loaded {
       background-color: transparent;
+    }
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .photo-item-animate {
+      opacity: 0;
+      animation: slideUp 0.45s ease forwards;
+      animation-play-state: paused;
+    }
+    #photo-grid.ready .photo-item-animate {
+      animation-play-state: running;
     }
     #photo-modal.modal-open {
       opacity: 1;
@@ -162,6 +190,37 @@ try {
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      const grid = document.getElementById('photo-grid');
+
+      // Wait for eager images (first 9) to load before revealing the grid
+      const eagerImages = grid ? Array.from(grid.querySelectorAll('img:not(.lazy-image)')) as HTMLImageElement[] : [];
+      let loadedCount = 0;
+
+      function revealGrid() {
+        if (grid) {
+          grid.style.opacity = '1';
+          grid.classList.add('ready');
+        }
+      }
+
+      function checkAllLoaded() {
+        if (loadedCount >= eagerImages.length) revealGrid();
+      }
+
+      if (eagerImages.length === 0) {
+        revealGrid();
+      } else {
+        eagerImages.forEach(img => {
+          if (img.complete) {
+            loadedCount++;
+          } else {
+            img.addEventListener('load', () => { loadedCount++; checkAllLoaded(); });
+            img.addEventListener('error', () => { loadedCount++; checkAllLoaded(); });
+          }
+        });
+        checkAllLoaded();
+      }
+
       // Lazy loading
       const lazyImages = document.querySelectorAll('.lazy-image');
       if (lazyImages.length > 0) {
@@ -174,8 +233,10 @@ try {
               if (src) {
                 img.src = src;
                 if (srcset) img.srcset = srcset;
-                img.addEventListener('load', () => img.classList.add('loaded'));
-                img.classList.remove('lazy-image');
+                img.addEventListener('load', () => {
+                  img.classList.remove('lazy-image');
+                  img.classList.add('loaded');
+                });
                 obs.unobserve(img);
               }
             }
