@@ -1,24 +1,83 @@
 ---
 import Layout from '../components/Layout.astro';
+import { v2 as cloudinary } from 'cloudinary';
+
+cloudinary.config({
+  cloud_name: import.meta.env.CLOUDINARY_CLOUD_NAME,
+  api_key: import.meta.env.CLOUDINARY_API_KEY,
+  api_secret: import.meta.env.CLOUDINARY_API_SECRET,
+});
+
+let bruceImageSrc: string | null = null;
+try {
+  const result = await cloudinary.search
+    .expression('folder:bruce-bybee AND display_name=bruce')
+    .max_results(1)
+    .execute();
+
+  const resource = result.resources?.[0];
+  if (resource) {
+    bruceImageSrc = cloudinary.url(resource.public_id, {
+      format: 'webp',
+      quality: 90,
+      width: 1200,
+      crop: 'limit',
+    });
+  }
+} catch {
+  // image won't render if not found
+}
 ---
 
 <Layout title="About - Bruce Bybee Photography">
-  <section class="page-section">
+  <div id="page-loader" class="fixed inset-0 bg-white z-[100]" style="transition: opacity 0.6s ease;"></div>
+  <section class="page-section-wide">
     <h1 class="page-title mb-12">About</h1>
-    <div class="body-list body-text">
-      <p>Bruce Bybee is a Manhattan-based photographer specializing in cultural events, performances, exhibitions, and portraiture.</p>
-      <p>He began working with manual analog photography in 2014, developing a disciplined understanding of light, timing, and material process before expanding into digital formats and commissioned work in 2023.</p>
-      <p>Bruce received a B.A. with honors in Modern Culture and Media from Brown University and completed a certificate in Film Production at FAMU in Prague. His training in visual theory and cinema continues to inform his photographic practice, particularly in his attention to structure, rhythm, and atmosphere.</p>
-      <p>Originally from Prague, he is a native bilingual Czech–English speaker and has lived and worked between both languages his entire life.</p>
+    <div class="flex flex-col md:flex-row md:gap-12 md:items-start">
+      {bruceImageSrc && (
+        <img
+          id="about-img"
+          src={bruceImageSrc}
+          alt="Bruce Bybee"
+          class="w-full md:w-1/2 h-auto mb-8 md:mb-0 flex-shrink-0"
+        />
+      )}
+      <div class="body-list body-text">
+        <p>Bruce Bybee is a Manhattan-based photographer specializing in cultural events, performances, exhibitions, and portraiture.</p>
+        <p>He began working with manual analog photography in 2014, developing a disciplined understanding of light, timing, and material process before expanding into digital formats and commissioned work in 2023.</p>
+        <p>Bruce received a B.A. with honors in Modern Culture and Media from Brown University and completed a certificate in Film Production at FAMU in Prague. His training in visual theory and cinema continues to inform his photographic practice, particularly in his attention to structure, rhythm, and atmosphere.</p>
+        <p>Originally from Prague, he is a native bilingual Czech–English speaker and has lived and worked between both languages his entire life.</p>
+        <p>Alongside his photographic work, Bruce works professionally as a Czech–English literary translator and interpreter. He began working professionally as a literary translator and interpreter in 2024 and was awarded the Susanna Roth Award for English Translation in 2025.</p>
+      </div>
     </div>
   </section>
 
-  <section class="page-section page-section-divided">
+  <script>
+    const loader = document.getElementById('page-loader') as HTMLElement;
+    const img = document.getElementById('about-img') as HTMLImageElement;
+
+    function revealPage() {
+      if (!loader) return;
+      loader.style.opacity = '0';
+      setTimeout(() => loader.remove(), 600);
+    }
+
+    if (!img) {
+      revealPage();
+    } else if (img.complete) {
+      revealPage();
+    } else {
+      img.addEventListener('load', revealPage);
+      img.addEventListener('error', revealPage);
+      setTimeout(revealPage, 6000);
+    }
+  </script>
+
+  <!-- <section class="page-section page-section-divided">
     <h2 class="section-title mb-8">Language & Translation</h2>
     <div class="body-list body-text">
-      <p>Alongside his photographic work, Bruce works professionally as a Czech–English literary translator and interpreter. He began working professionally as a literary translator and interpreter in 2024 and was awarded the Susanna Roth Award for English Translation in 2025.</p>
       <p>His translation work includes contemporary literature, cultural writing, and institutional materials. Services are available for publishers, artists, and cultural organizations, including exhibition texts, press materials, and public programs.</p>
       <p>Translation and interpretation inquiries are welcome.</p>
     </div>
-  </section>
+  </section> -->
 </Layout>

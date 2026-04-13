@@ -1,47 +1,165 @@
 ---
 import Layout from '../components/Layout.astro';
+import { v2 as cloudinary } from 'cloudinary';
+
+cloudinary.config({
+  cloud_name: import.meta.env.CLOUDINARY_CLOUD_NAME,
+  api_key: import.meta.env.CLOUDINARY_API_KEY,
+  api_secret: import.meta.env.CLOUDINARY_API_SECRET,
+});
+
+async function getServiceImage(name: string) {
+  try {
+    const result = await cloudinary.search
+      .expression(`folder:bruce-bybee AND display_name=${name}`)
+      .max_results(1)
+      .execute();
+    const resource = result.resources?.[0];
+    if (!resource) return null;
+    return cloudinary.url(resource.public_id, {
+      format: 'webp',
+      quality: 88,
+      width: 1200,
+      crop: 'limit',
+    });
+  } catch {
+    return null;
+  }
+}
+
+const [photographyImg, deliveryImg, additionalImg, translationImg] = await Promise.all([
+  getServiceImage('photography_services'),
+  getServiceImage('delivery_and_booking'),
+  getServiceImage('additional_options'),
+  getServiceImage('translation_and_interpretation'),
+]);
+
+const sections = [
+  {
+    title: 'Photography Services',
+    img: photographyImg,
+    imgId: 'svc-img-0',
+    imageLeft: true,
+    content: [
+      { label: 'Live Events & Performances', note: 'Starting at $200/hour.', text: 'Coverage for concerts, theater productions, lectures, readings, and public programs. Includes key moments, audience engagement, and environmental atmosphere. Available for recurring institutional coverage.' },
+      { label: 'Exhibitions & Installations', note: 'Starting at $200/hour.', text: 'Gallery documentation, installation views, artwork detail photography, and architectural context. Ideal for museums, curators, and exhibiting artists.' },
+      { label: 'Portraiture', note: 'Starting at $150/hour.', text: 'Artist portraits, editorial sessions, and professional headshots, on location, or in studio.' },
+      { label: 'Touring Artists', note: 'Custom packages and rates available upon request.', text: 'Press photography, performance documentation, promotional imagery, and expedited delivery for artists performing in New York City.' },
+    ],
+  },
+  {
+    title: 'Delivery and Booking',
+    img: deliveryImg,
+    imgId: 'svc-img-1',
+    imageLeft: false,
+    content: [
+      { label: null, note: null, text: 'Approximately 15 edited images per hour of coverage.' },
+      { label: null, note: null, text: 'Standard delivery within 3 days via private online gallery.' },
+      { label: null, note: null, text: '50% deposit required to confirm booking.' },
+    ],
+  },
+  {
+    title: 'Additional Options',
+    img: additionalImg,
+    imgId: 'svc-img-2',
+    imageLeft: true,
+    content: [
+      { label: 'Expedited Delivery', note: null, text: 'Select images delivered within 12-24 hours for press and promotional use.' },
+      { label: 'Institutional Partnerships', note: null, text: 'Ongoing event and exhibition coverage for organizations seeking consistent documentation throughout a season or program year.' },
+      { label: 'Usage & Licensing', note: null, text: 'Standard coverage includes non-exclusive promotional and editorial use. Commercial campaigns, extended usage, or exclusive rights can be licensed separately. Photographer retains copyright unless otherwise agreed in writing.' },
+      { label: 'Cancellation Policy', note: null, text: 'Cancellations within 48 hours of the scheduled booking may be subject to a fee.' },
+    ],
+  },
+  {
+    title: 'Translation and Interpretation',
+    img: translationImg,
+    imgId: 'svc-img-3',
+    imageLeft: false,
+    content: [
+      { label: 'Scope', note: null, text: 'Available for contemporary literature, cultural writing, and institutional materials. Services are available for publishers, artists, and cultural organizations, including exhibition texts, press materials, and public programs.' },
+      { label: 'Past References', note: null, text: 'Samples and references available upon request.' },
+      { label: 'Usage & Licensing', note: null, text: '' },
+      { label: 'Cancellation Policy', note: null, text: '' },
+    ],
+  },
+];
 ---
 
 <Layout title="Services - Bruce Bybee Photography">
+  <!-- Page loader overlay -->
+  <div id="page-loader" class="fixed inset-0 bg-white z-[100]" style="transition: opacity 0.6s ease;"></div>
+
   <section class="page-section">
-    <h1 class="page-title mb-12">Photography Services</h1>
-    <ul class="body-list body-text">
-      <li><span class="font-semibold text-gray-900">Live Events & Performances:</span> <i>Starting at $200/hour.</i> Coverage for concerts, theater productions, lectures, readings, and public programs.  Includes key moments, audience engagement, and environmental atmosphere.  Available for recurring institutional coverage.</li>
-      <li><span class="font-semibold text-gray-900">Exhibitions & Installations:</span> <i>Starting at $200/hour.</i> Gallery documentation, installation views, artwork detail photography, and architectural context.  Ideal for museums, curators, and exhibiting artists.</li>
-      <li><span class="font-semibold text-gray-900">Portraiture:</span> <i>Starting at $150/hour.</i> Artist portraits, editorial sessions, and professional headshots, on location, or in studio.</li>
-      <li><span class="font-semibold text-gray-900">Touring Artists:</span> <i>Custom packages and rates available upon request.</i> Press photography, performance documentation, promotional imagery, and expedited delivery for artists performing in New York City.</li>
-    </ul>
-    <div class="btn-container">
-      <a href="/contact" class="btn-primary">Book Now</a>
+    <h1 class="page-title mb-16">Services</h1>
+  </section>
+
+  {sections.map((section) => (
+    <div class={`flex flex-col ${section.imageLeft ? 'md:flex-row' : 'md:flex-row-reverse'} border-t border-gray-100 md:h-[560px]`}>
+      <!-- Image -->
+      <div class="w-full md:w-1/2 h-72 md:h-full overflow-hidden">
+        {section.img && (
+          <img
+            id={section.imgId}
+            src={section.img}
+            alt={section.title}
+            class="w-full h-full object-cover"
+          />
+        )}
+      </div>
+
+      <!-- Text -->
+      <div class="w-full md:w-1/2 px-8 py-12 md:px-12 md:py-16 flex flex-col justify-center">
+        <h2 class="section-title mb-8 text-left">{section.title}</h2>
+        <ul class="body-list body-text">
+          {section.content.map((item) => (
+            <li>
+              {item.label && <span class="font-semibold text-gray-900">{item.label}:</span>}{' '}
+              {item.note && <i>{item.note}</i>}{' '}
+              {item.text}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
-  </section>
+  ))}
 
-  <section class="page-section page-section-divided">
-    <h2 class="section-title mb-8">Delivery and Booking</h2>
-    <ul class="body-list body-text">
-      <li>Approximately 15 edited images per hour of coverage.</li>
-      <li>Standard delivery within 3 days via private online gallery.</li>
-      <li>50% deposit required to confirm booking.</li>
-    </ul>
-  </section>
-
-  <section class="page-section page-section-divided">
-    <h2 class="section-title mb-8">Additional Options</h2>
-    <ul class="body-list body-text">
-      <li><span class="font-semibold text-gray-900">Expedited Delivery:</span> Select images delivered within 12-24 hours for press and promotional use.</li>
-      <li><span class="font-semibold text-gray-900">Institutional Partnerships:</span> Ongoing event and exhibition coverage for organizations seeking consistent documentation throughout a season or program year.</li>
-      <li><span class="font-semibold text-gray-900">Usage & Licensing:</span> Standard coverage includes non-exclusive promotional and editorial use. Commercial campaigns, extended usage, or exclusive rights can be licensed separately. Photographer retains copyright unless otherwise agreed in writing.</li>
-      <li><span class="font-semibold text-gray-900">Cancellation Policy:</span> Cancellations within 48 hours of the scheduled booking may be subject to a fee.</li>
-    </ul>
-  </section>
-
-  <section class="page-section page-section-divided">
-    <h2 class="section-title mb-8">Translation and Interpretation</h2>
-    <ul class="body-list body-text">
-      <li><span class="font-semibold text-gray-900">Scope:</span> Available for contemporary literature, cultural writing, and institutional materials. Services are available for publishers, artists, and cultural organizations, including exhibition texts, press materials, and public programs.</li>
-      <li><span class="font-semibold text-gray-900">Past References:</span> Samples and references available upon request.</li>
-      <li><span class="font-semibold text-gray-900">Usage & Licensing:</span> </li>
-      <li><span class="font-semibold text-gray-900">Cancellation Policy:</span> </li>
-    </ul>
-  </section>
+  <!-- CTA Strip -->
+  <div class="bg-gray-900 py-20 text-center border-t border-gray-800">
+    <p class="body-text text-white/80 mb-8">Ready to work together? I'd love to hear about your project.</p>
+    <a href="/contact" class="inline-block px-10 py-4 text-sm tracking-widest uppercase border border-white text-white hover:bg-white hover:text-gray-900 transition-all duration-300">
+      Get in Touch
+    </a>
+  </div>
 </Layout>
+
+<script>
+  const loader = document.getElementById('page-loader') as HTMLElement;
+  const imgs = ['svc-img-0', 'svc-img-1', 'svc-img-2', 'svc-img-3']
+    .map(id => document.getElementById(id))
+    .filter(Boolean) as HTMLImageElement[];
+
+  function revealPage() {
+    if (!loader) return;
+    loader.style.opacity = '0';
+    setTimeout(() => loader.remove(), 600);
+  }
+
+  if (imgs.length === 0) {
+    revealPage();
+  } else {
+    let loaded = 0;
+    function onLoad() {
+      loaded++;
+      if (loaded >= imgs.length) revealPage();
+    }
+    imgs.forEach(img => {
+      if (img.complete) {
+        onLoad();
+      } else {
+        img.addEventListener('load', onLoad);
+        img.addEventListener('error', onLoad);
+      }
+    });
+    setTimeout(revealPage, 6000);
+  }
+</script>

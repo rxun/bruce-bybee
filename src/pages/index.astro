@@ -9,6 +9,25 @@ cloudinary.config({
   api_secret: import.meta.env.CLOUDINARY_API_SECRET,
 });
 
+async function getPanelImage(name: string) {
+  try {
+    const result = await cloudinary.search
+      .expression(`folder:bruce-bybee AND display_name=${name}`)
+      .max_results(1)
+      .execute();
+    const resource = result.resources?.[0];
+    if (!resource) return null;
+    return cloudinary.url(resource.public_id, {
+      format: 'webp',
+      quality: 85,
+      width: 1200,
+      crop: 'limit',
+    });
+  } catch {
+    return null;
+  }
+}
+
 async function getSlideshowImages() {
   try {
     const result = await cloudinary.search
@@ -32,6 +51,10 @@ async function getSlideshowImages() {
 }
 
 const slideshowImages = await getSlideshowImages();
+const [servicesImage, contactImage] = await Promise.all([
+  getPanelImage('services_icon'),
+  getPanelImage('contact_icon'),
+]);
 ---
 
 <Layout title="Bruce Bybee Photography">
@@ -77,7 +100,7 @@ const slideshowImages = await getSlideshowImages();
   </section>
 
   <!-- Services Preview Section -->
-  <section class="page-section page-section-divided">
+  <!-- <section class="page-section page-section-divided">
     <h2 class="section-title mb-8">Services</h2>
     <ul class="body-list body-text">
       <li><span class="font-semibold text-gray-900">Live Events & Performances:</span> Concerts, theater, readings and public programs</li>
@@ -89,10 +112,10 @@ const slideshowImages = await getSlideshowImages();
     <div class="btn-container">
       <a href="/services" class="btn-primary">View Services</a>
     </div>
-  </section>
+  </section> -->
 
   <!-- Contact Section -->
-  <section class="page-section page-section-divided">
+  <!-- <section class="page-section page-section-divided">
     <h2 class="section-title mb-4">Contact</h2>
     <p class="body-text text-center">
       Tell me about your project, date, and location. I typically respond within 24 hours.
@@ -100,11 +123,50 @@ const slideshowImages = await getSlideshowImages();
     <div class="btn-container">
       <a href="/contact" class="btn-primary">Book Now</a>
     </div>
-  </section>
+  </section> -->
+
+  <!-- Services + Contact Panels -->
+  <div class="flex flex-col md:flex-row border-t border-gray-100">
+    <!-- Services Panel -->
+    <a href="/services" class="group relative flex-1 h-[35vh] md:h-[50vh] overflow-hidden flex items-center justify-center">
+      {servicesImage && (
+        <img
+          src={servicesImage}
+          alt="Services"
+          id="services-panel-img"
+          class="absolute inset-0 w-full h-full object-cover"
+        />
+      )}
+      <div class="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors duration-300"></div>
+      <span class="relative z-10 text-white text-sm tracking-widest uppercase border border-white/70 px-6 py-3 group-hover:bg-white group-hover:text-gray-900 transition-all duration-300">
+        Services
+      </span>
+    </a>
+
+    <!-- Contact Panel -->
+    <a href="/contact" class="group relative flex-1 h-[35vh] md:h-[50vh] overflow-hidden flex items-center justify-center">
+      {contactImage && (
+        <img
+          src={contactImage}
+          alt="Contact"
+          id="contact-panel-img"
+          class="absolute inset-0 w-full h-full object-cover"
+        />
+      )}
+      <div class="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors duration-300"></div>
+      <span class="relative z-10 text-white text-sm tracking-widest uppercase border border-white/70 px-6 py-3 group-hover:bg-white group-hover:text-gray-900 transition-all duration-300">
+        Contact
+      </span>
+    </a>
+  </div>
 
   <script>
     const loader = document.getElementById('page-loader') as HTMLElement;
-    const firstImg = document.getElementById('first-slide-img') as HTMLImageElement;
+    const criticalImgs = [
+      document.getElementById('first-slide-img'),
+      document.getElementById('services-panel-img'),
+      document.getElementById('contact-panel-img'),
+    ].filter(Boolean) as HTMLImageElement[];
 
     function revealPage() {
       if (!loader) return;
@@ -112,14 +174,22 @@ const slideshowImages = await getSlideshowImages();
       setTimeout(() => loader.remove(), 600);
     }
 
-    if (!firstImg) {
-      revealPage();
-    } else if (firstImg.complete) {
+    if (criticalImgs.length === 0) {
       revealPage();
     } else {
-      firstImg.addEventListener('load', revealPage);
-      firstImg.addEventListener('error', revealPage);
-      // Safety fallback in case image never fires
+      let loaded = 0;
+      function onLoad() {
+        loaded++;
+        if (loaded >= criticalImgs.length) revealPage();
+      }
+      criticalImgs.forEach(img => {
+        if (img.complete) {
+          onLoad();
+        } else {
+          img.addEventListener('load', onLoad);
+          img.addEventListener('error', onLoad);
+        }
+      });
       setTimeout(revealPage, 6000);
     }
 
