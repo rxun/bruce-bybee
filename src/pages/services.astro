@@ -19,67 +19,79 @@ async function getServiceImage(name: string) {
     return cloudinary.url(resource.public_id, {
       format: 'webp',
       quality: 88,
-      width: 1200,
-      crop: 'limit',
+      width: 800,
+      height: 800,
+      crop: 'fill',
+      gravity: 'auto',
     });
   } catch {
     return null;
   }
 }
 
-const [photographyImg, deliveryImg, additionalImg, translationImg] = await Promise.all([
-  getServiceImage('photography_services'),
-  getServiceImage('delivery_and_booking'),
-  getServiceImage('additional_options'),
-  getServiceImage('translation_and_interpretation'),
+// Square images: upload to Cloudinary (bruce-bybee folder) with these display names
+const [liveEventsImg, exhibitionsImg, portraitureImg, touringImg, translationImg] = await Promise.all([
+  getServiceImage('service_live_events'),
+  getServiceImage('service_exhibitions'),
+  getServiceImage('service_portraiture'),
+  getServiceImage('service_touring_artists'),
+  getServiceImage('service_translation'),
 ]);
 
-const sections = [
+const services = [
   {
-    title: 'Photography Services',
-    img: photographyImg,
-    imgId: 'svc-img-0',
-    imageLeft: true,
-    content: [
-      { label: 'Live Events & Performances', note: 'Starting at $200/hour.', text: 'Coverage for concerts, theater productions, lectures, readings, and public programs. Includes key moments, audience engagement, and environmental atmosphere. Available for recurring institutional coverage.' },
-      { label: 'Exhibitions & Installations', note: 'Starting at $200/hour.', text: 'Gallery documentation, installation views, artwork detail photography, and architectural context. Ideal for museums, curators, and exhibiting artists.' },
-      { label: 'Portraiture', note: 'Starting at $150/hour.', text: 'Artist portraits, editorial sessions, and professional headshots, on location, or in studio.' },
-      { label: 'Touring Artists', note: 'Custom packages and rates available upon request.', text: 'Press photography, performance documentation, promotional imagery, and expedited delivery for artists performing in New York City.' },
-    ],
+    title: 'Live Events & Performances',
+    description: 'Coverage for concerts, theater productions, lectures, readings, and public programs. Includes key moments, audience engagement, and environmental atmosphere.',
+    price: 'From $200 / hour',
+    projectType: 'Live Events & Performances',
+    img: liveEventsImg,
   },
   {
-    title: 'Delivery and Booking',
-    img: deliveryImg,
-    imgId: 'svc-img-1',
-    imageLeft: false,
-    content: [
-      { label: null, note: null, text: 'Approximately 15 edited images per hour of coverage.' },
-      { label: null, note: null, text: 'Standard delivery within 3 days via private online gallery.' },
-      { label: null, note: null, text: '50% deposit required to confirm booking.' },
+    title: 'Exhibitions & Installations',
+    description: 'Gallery documentation, installation views, artwork detail photography, and architectural context for museums, curators, and exhibiting artists.',
+    price: 'From $200 / hour',
+    projectType: 'Exhibitions & Installations',
+    img: exhibitionsImg,
+  },
+  {
+    title: 'Portraiture',
+    description: 'Artist portraits, editorial sessions, and professional headshots — on location or in studio.',
+    price: 'From $150 / hour',
+    projectType: 'Portraiture',
+    img: portraitureImg,
+  },
+  {
+    title: 'Touring Artists',
+    description: 'Press photography, performance documentation, promotional imagery, and expedited delivery for artists performing in New York City.',
+    price: 'Custom packages available',
+    projectType: 'Touring Artist Coverage',
+    img: touringImg,
+  },
+  {
+    title: 'Translation & Interpretation',
+    description: 'Czech–English translation for contemporary literature, cultural writing, exhibition texts, press materials, and public programs. Samples and references available upon request.',
+    price: 'Rates upon request',
+    projectType: 'Translation / Interpretation',
+    img: translationImg,
+  },
+];
+
+const details = [
+  {
+    title: 'Delivery & Booking',
+    items: [
+      { label: null, text: 'Approximately 15 edited images per hour of coverage.' },
+      { label: null, text: 'Standard delivery within 3 days via private online gallery.' },
+      { label: null, text: '50% deposit required to confirm booking.' },
     ],
   },
   {
     title: 'Additional Options',
-    img: additionalImg,
-    imgId: 'svc-img-2',
-    imageLeft: true,
-    content: [
-      { label: 'Expedited Delivery', note: null, text: 'Select images delivered within 12-24 hours for press and promotional use.' },
-      { label: 'Institutional Partnerships', note: null, text: 'Ongoing event and exhibition coverage for organizations seeking consistent documentation throughout a season or program year.' },
-      { label: 'Usage & Licensing', note: null, text: 'Standard coverage includes non-exclusive promotional and editorial use. Commercial campaigns, extended usage, or exclusive rights can be licensed separately. Photographer retains copyright unless otherwise agreed in writing.' },
-      { label: 'Cancellation Policy', note: null, text: 'Cancellations within 48 hours of the scheduled booking may be subject to a fee.' },
-    ],
-  },
-  {
-    title: 'Translation and Interpretation',
-    img: translationImg,
-    imgId: 'svc-img-3',
-    imageLeft: false,
-    content: [
-      { label: 'Scope', note: null, text: 'Available for contemporary literature, cultural writing, and institutional materials. Services are available for publishers, artists, and cultural organizations, including exhibition texts, press materials, and public programs.' },
-      { label: 'Past References', note: null, text: 'Samples and references available upon request.' },
-      { label: 'Usage & Licensing', note: null, text: '' },
-      { label: 'Cancellation Policy', note: null, text: '' },
+    items: [
+      { label: 'Expedited Delivery', text: 'Select images delivered within 12-24 hours for press and promotional use.' },
+      { label: 'Institutional Partnerships', text: 'Ongoing event and exhibition coverage for organizations seeking consistent documentation throughout a season or program year.' },
+      { label: 'Usage & Licensing', text: 'Standard coverage includes non-exclusive promotional and editorial use. Commercial campaigns, extended usage, or exclusive rights can be licensed separately. Photographer retains copyright unless otherwise agreed in writing.' },
+      { label: 'Cancellation Policy', text: 'Cancellations within 48 hours of the scheduled booking may be subject to a fee.' },
     ],
   },
 ];
@@ -90,44 +102,70 @@ const sections = [
   <div id="page-loader" class="fixed inset-0 bg-white z-[100]" style="transition: opacity 0.6s ease;"></div>
 
   <section class="page-section">
-    <h1 class="page-title mb-16">Services</h1>
+    <h1 class="page-title mb-4">Services</h1>
   </section>
 
-  {sections.map((section) => (
-    <div class="relative border-t border-gray-100">
-      <!-- Image: stacks above text on mobile, absolutely fills opposite half on desktop -->
-      <div
-        class="w-full h-72 md:h-full overflow-hidden md:absolute md:inset-y-0 md:w-1/2"
-        style={section.imageLeft ? 'left: 0' : 'right: 0'}
-      >
-        {section.img && (
-          <img
-            id={section.imgId}
-            src={section.img}
-            alt={section.title}
-            class="w-full h-full object-cover"
-          />
-        )}
-      </div>
+  <!-- Service rows -->
+  <section class="max-w-6xl mx-auto px-8 pb-8">
+    {services.map((service, index) => (
+      <div class="border-t border-gray-200 py-2 md:py-4 grid grid-cols-1 md:grid-cols-[3rem_280px_1fr] gap-6 md:gap-10 items-center">
+        <!-- Number -->
+        <span class="text-sm tracking-widest text-gray-400">{String(index + 1).padStart(2, '0')}</span>
 
-      <!-- Text: occupies the opposite half on desktop, full width on mobile -->
-      <div
-        class="w-full md:w-1/2 px-8 py-12 md:px-12 md:py-16"
-        style={section.imageLeft ? 'margin-left: 50%' : ''}
-      >
-        <h2 class="section-title mb-8 text-left">{section.title}</h2>
-        <ul class="body-list body-text">
-          {section.content.map((item) => (
-            <li>
-              {item.label && <span class="font-semibold text-gray-900">{item.label}:</span>}{' '}
-              {item.note && <i>{item.note}</i>}{' '}
-              {item.text}
-            </li>
-          ))}
-        </ul>
+        <!-- Square image -->
+        <div class="aspect-square w-full max-w-[280px] overflow-hidden bg-gray-100">
+          {service.img && (
+            <img
+              src={service.img}
+              alt={service.title}
+              class="svc-img w-full h-full object-cover"
+              loading={index < 2 ? 'eager' : 'lazy'}
+            />
+          )}
+        </div>
+
+        <!-- Text + arrow -->
+        <div class="md:pl-8">
+          <h2 class="text-xl md:text-2xl font-serif uppercase tracking-wide text-gray-900 mb-3">
+            {service.title}
+          </h2>
+          <p class="text-sm md:text-base text-gray-600 leading-relaxed mb-6 max-w-md">
+            {service.description}
+          </p>
+          <a
+            href="/contact"
+            data-project-type={service.projectType}
+            class="contact-modal-trigger group flex items-center justify-between max-w-md cursor-pointer"
+            aria-label={`Inquire about ${service.title}`}
+          >
+            <span class="text-xs tracking-widest uppercase text-gray-900 group-hover:text-gray-500 transition-colors duration-300">{service.price}</span>
+            <span class="text-2xl text-gray-900 group-hover:text-gray-500 transition-all duration-300">
+              <span class="inline-block transition-transform duration-300 group-hover:translate-x-1">&rarr;</span>
+            </span>
+          </a>
+        </div>
       </div>
+    ))}
+  </section>
+
+  <!-- Delivery & Booking / Additional Options -->
+  <section class="border-t border-gray-200 bg-gray-50">
+    <div class="max-w-6xl mx-auto px-8 py-20 grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
+      {details.map((block) => (
+        <div>
+          <h2 class="text-lg font-serif uppercase tracking-wide text-gray-900 mb-6">{block.title}</h2>
+          <ul class="space-y-4">
+            {block.items.map((item) => (
+              <li class="text-sm md:text-base text-gray-600 leading-relaxed">
+                {item.label && <span class="font-semibold text-gray-900">{item.label}: </span>}
+                {item.text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
-  ))}
+  </section>
 
   <!-- CTA Strip -->
   <div class="bg-gray-900 py-20 text-center border-t border-gray-800">
@@ -140,9 +178,7 @@ const sections = [
 
 <script>
   const loader = document.getElementById('page-loader') as HTMLElement;
-  const imgs = ['svc-img-0', 'svc-img-1', 'svc-img-2', 'svc-img-3']
-    .map(id => document.getElementById(id))
-    .filter(Boolean) as HTMLImageElement[];
+  const imgs = Array.from(document.querySelectorAll('.svc-img')) as HTMLImageElement[];
 
   function revealPage() {
     if (!loader) return;

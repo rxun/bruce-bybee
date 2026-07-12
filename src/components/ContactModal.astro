@@ -123,6 +123,12 @@
   document.querySelectorAll('.contact-modal-trigger').forEach((el) => {
     el.addEventListener('click', (e) => {
       e.preventDefault();
+      // Triggers may pre-select a project type (e.g. service rows)
+      const projectType = (el as HTMLElement).dataset.projectType;
+      if (projectType) {
+        (fieldEl('projectType') as HTMLSelectElement).value = projectType;
+        saveDraft();
+      }
       openModal();
     });
   });
