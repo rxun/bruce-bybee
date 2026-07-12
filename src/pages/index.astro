@@ -121,7 +121,7 @@ const [servicesImage, contactImage] = await Promise.all([
       Tell me about your project, date, and location. I typically respond within 24 hours.
     </p>
     <div class="btn-container">
-      <a href="/contact" class="btn-primary">Book Now</a>
+      <a href="/contact" class="contact-modal-trigger btn-primary">Book Now</a>
     </div>
   </section> -->
 
@@ -144,7 +144,7 @@ const [servicesImage, contactImage] = await Promise.all([
     </a>
 
     <!-- Contact Panel -->
-    <a href="/contact" class="group relative flex-1 h-[35vh] md:h-[50vh] overflow-hidden flex items-center justify-center">
+    <a href="/contact" class="contact-modal-trigger group relative flex-1 h-[35vh] md:h-[50vh] overflow-hidden flex items-center justify-center">
       {contactImage && (
         <img
           src={contactImage}

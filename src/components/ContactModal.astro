@@ -1,0 +1,173 @@
+<!-- Site-wide contact modal. Opened by elements with class "contact-modal-trigger". -->
+<div id="contact-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/50 p-4 opacity-0 transition-opacity duration-300">
+  <div id="contact-modal-box" class="relative w-full max-w-xl max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-2xl p-8 md:p-10">
+    <button id="contact-modal-close" type="button" class="absolute top-4 right-4 text-2xl leading-none text-gray-400 hover:text-gray-900 transition-colors" aria-label="Close contact form">
+      &times;
+    </button>
+
+    <h2 class="text-2xl md:text-3xl font-serif text-center mb-3">Start a Conversation</h2>
+    <p class="text-sm text-gray-600 text-center mb-8">
+      Please include the date, location, and a brief description of your project. I respond within 24 hours.
+    </p>
+
+    <form id="cm-form" class="space-y-5">
+      <div>
+        <label for="cm-name" class="form-label">Name</label>
+        <input type="text" id="cm-name" name="name" required class="form-input" />
+      </div>
+
+      <div>
+        <label for="cm-email" class="form-label">Email</label>
+        <input type="email" id="cm-email" name="email" required class="form-input" />
+      </div>
+
+      <div>
+        <label for="cm-organization" class="form-label">Organization <span class="text-gray-400 font-normal">(optional)</span></label>
+        <input type="text" id="cm-organization" name="organization" class="form-input" />
+      </div>
+
+      <div>
+        <label for="cm-projectType" class="form-label">Type of Project</label>
+        <select id="cm-projectType" name="projectType" required class="form-input bg-white">
+          <option value="" disabled selected>Select a project type</option>
+          <option value="Live Events & Performances">Live Events & Performances</option>
+          <option value="Exhibitions & Installations">Exhibitions & Installations</option>
+          <option value="Portraiture">Portraiture</option>
+          <option value="Touring Artist Coverage">Touring Artist Coverage</option>
+          <option value="Institutional Partnership">Institutional Partnership</option>
+          <option value="Translation / Interpretation">Translation / Interpretation</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="cm-eventDate" class="form-label">Event Date</label>
+        <input type="date" id="cm-eventDate" name="eventDate" class="form-input" />
+      </div>
+
+      <div>
+        <label for="cm-message" class="form-label">Message</label>
+        <textarea id="cm-message" name="message" rows="5" required class="form-input resize-vertical"></textarea>
+      </div>
+
+      <button type="submit" id="cm-submit-btn" class="btn-primary w-full">
+        Send Inquiry
+      </button>
+
+      <p id="cm-form-success" class="hidden text-center text-green-700 text-sm">Thank you! Your inquiry has been sent. You'll receive a confirmation email shortly.</p>
+      <p id="cm-form-error" class="hidden text-center text-red-700 text-sm">Something went wrong. Please try again or email brucectbybee@gmail.com directly.</p>
+    </form>
+  </div>
+</div>
+
+<script>
+  const modal = document.getElementById('contact-modal')!;
+  const box = document.getElementById('contact-modal-box')!;
+  const closeBtn = document.getElementById('contact-modal-close')!;
+  const form = document.getElementById('cm-form') as HTMLFormElement;
+  const submitBtn = document.getElementById('cm-submit-btn') as HTMLButtonElement;
+  const successMsg = document.getElementById('cm-form-success')!;
+  const errorMsg = document.getElementById('cm-form-error')!;
+
+  const FIELDS = ['name', 'email', 'organization', 'projectType', 'eventDate', 'message'] as const;
+  const DRAFT_KEY = 'contactFormDraft';
+
+  function fieldEl(name: string) {
+    return document.getElementById(`cm-${name}`) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+  }
+
+  // ── Draft persistence (per tab) ──
+  function saveDraft() {
+    const draft: Record<string, string> = {};
+    FIELDS.forEach((f) => { draft[f] = fieldEl(f).value; });
+    try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {}
+  }
+
+  function restoreDraft() {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      FIELDS.forEach((f) => {
+        if (typeof draft[f] === 'string' && draft[f] !== '') fieldEl(f).value = draft[f];
+      });
+    } catch {}
+  }
+
+  function clearDraft() {
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
+  }
+
+  FIELDS.forEach((f) => fieldEl(f).addEventListener('input', saveDraft));
+  restoreDraft();
+
+  // ── Open / close ──
+  function openModal() {
+    // Close the mobile nav menu if it's open, so it isn't left open behind the modal
+    document.getElementById('mobile-menu')?.classList.add('hidden');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => modal.classList.remove('opacity-0'));
+  }
+
+  function closeModal() {
+    modal.classList.add('opacity-0');
+    document.body.style.overflow = 'auto';
+    setTimeout(() => {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }, 300);
+  }
+
+  document.querySelectorAll('.contact-modal-trigger').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      openModal();
+    });
+  });
+
+  closeBtn.addEventListener('click', closeModal);
+
+  // Click outside the box closes the modal
+  modal.addEventListener('click', (e) => {
+    if (!box.contains(e.target as Node)) closeModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+  });
+
+  // ── Submit ──
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+    successMsg.classList.add('hidden');
+    errorMsg.classList.add('hidden');
+
+    const data: Record<string, string> = {};
+    FIELDS.forEach((f) => { data[f] = fieldEl(f).value; });
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (res.ok) {
+        successMsg.classList.remove('hidden');
+        form.reset();
+        clearDraft();
+      } else {
+        errorMsg.classList.remove('hidden');
+      }
+    } catch {
+      errorMsg.classList.remove('hidden');
+    }
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Send Inquiry';
+  });
+</script>

@@ -94,9 +94,12 @@ const sections = [
   </section>
 
   {sections.map((section) => (
-    <div class={`flex flex-col ${section.imageLeft ? 'md:flex-row' : 'md:flex-row-reverse'} border-t border-gray-100 md:h-[560px]`}>
-      <!-- Image -->
-      <div class="w-full md:w-1/2 h-72 md:h-full overflow-hidden">
+    <div class="relative border-t border-gray-100">
+      <!-- Image: stacks above text on mobile, absolutely fills opposite half on desktop -->
+      <div
+        class="w-full h-72 md:h-full overflow-hidden md:absolute md:inset-y-0 md:w-1/2"
+        style={section.imageLeft ? 'left: 0' : 'right: 0'}
+      >
         {section.img && (
           <img
             id={section.imgId}
@@ -107,8 +110,11 @@ const sections = [
         )}
       </div>
 
-      <!-- Text -->
-      <div class="w-full md:w-1/2 px-8 py-12 md:px-12 md:py-16 flex flex-col justify-center">
+      <!-- Text: occupies the opposite half on desktop, full width on mobile -->
+      <div
+        class="w-full md:w-1/2 px-8 py-12 md:px-12 md:py-16"
+        style={section.imageLeft ? 'margin-left: 50%' : ''}
+      >
         <h2 class="section-title mb-8 text-left">{section.title}</h2>
         <ul class="body-list body-text">
           {section.content.map((item) => (
@@ -126,7 +132,7 @@ const sections = [
   <!-- CTA Strip -->
   <div class="bg-gray-900 py-20 text-center border-t border-gray-800">
     <p class="body-text text-white/80 mb-8">Ready to work together? I'd love to hear about your project.</p>
-    <a href="/contact" class="inline-block px-10 py-4 text-sm tracking-widest uppercase border border-white text-white hover:bg-white hover:text-gray-900 transition-all duration-300">
+    <a href="/contact" class="contact-modal-trigger inline-block px-10 py-4 text-sm tracking-widest uppercase border border-white text-white hover:bg-white hover:text-gray-900 transition-all duration-300">
       Get in Touch
     </a>
   </div>
