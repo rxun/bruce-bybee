@@ -4,9 +4,11 @@ import ContactModal from './ContactModal.astro';
 export interface Props {
   title: string;
   categories?: string[];
+  /** When true (homepage), the nav starts transparent over the hero and turns white on scroll. */
+  transparentNav?: boolean;
 }
 
-const { title, categories = [] } = Astro.props;
+const { title, categories = [], transparentNav = false } = Astro.props;
 
 // Helper to capitalize category names for display
 function formatCategoryName(cat: string): string {
@@ -33,7 +35,11 @@ import '../styles/global.css';
   <style>
     .font-serif { font-family: 'Crimson Text', serif; }
   </style>
-  <nav class="fixed top-0 w-full bg-white/90 backdrop-blur-sm z-50 border-b border-gray-100">
+  <nav
+    id="site-nav"
+    data-transparent={transparentNav ? 'true' : 'false'}
+    class={`fixed top-0 w-full bg-white/90 backdrop-blur-sm z-50 border-b border-gray-100 transition-colors duration-300 ${transparentNav ? 'nav-transparent' : ''}`}
+  >
     <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-4">
       <!-- Mobile Layout -->
       <div class="md:hidden flex justify-between items-center">
@@ -110,22 +116,64 @@ import '../styles/global.css';
     </div>
   </nav>
 
-  <!-- Mobile menu toggle script -->
+  <!-- Transparent nav overrides (homepage hero) -->
+  <style>
+    .nav-transparent {
+      background-color: transparent !important;
+      border-color: transparent !important;
+      backdrop-filter: none !important;
+    }
+    .nav-transparent a,
+    .nav-transparent button {
+      color: #fff;
+    }
+    .nav-transparent a:hover {
+      background-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    /* Active pill (bg-gray-900) becomes translucent white over the image */
+    .nav-transparent a.bg-gray-900 {
+      background-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    .nav-transparent #mobile-menu-btn:hover {
+      background-color: rgba(255, 255, 255, 0.15) !important;
+    }
+  </style>
+
+  <!-- Mobile menu toggle + transparent nav scroll script -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const mobileMenuBtn = document.getElementById('mobile-menu-btn');
       const mobileMenu = document.getElementById('mobile-menu');
-      
+      const nav = document.getElementById('site-nav');
+      const isTransparentNav = nav?.dataset.transparent === 'true';
+
+      // Nav goes solid when scrolled past the top or when the mobile menu is open
+      function updateNav() {
+        if (!nav || !isTransparentNav) return;
+        const menuOpen = mobileMenu && !mobileMenu.classList.contains('hidden');
+        if (window.scrollY > 40 || menuOpen) {
+          nav.classList.remove('nav-transparent');
+        } else {
+          nav.classList.add('nav-transparent');
+        }
+      }
+
       if (mobileMenuBtn && mobileMenu) {
         mobileMenuBtn.addEventListener('click', () => {
           mobileMenu.classList.toggle('hidden');
+          updateNav();
         });
+      }
+
+      if (isTransparentNav) {
+        window.addEventListener('scroll', updateNav, { passive: true });
+        updateNav();
       }
     });
   </script>
   
   
-  <main class="pt-20">
+  <main class={transparentNav ? '' : 'pt-20'}>
     <slot />
   </main>
 

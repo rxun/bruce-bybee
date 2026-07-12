@@ -57,11 +57,11 @@ const [servicesImage, contactImage] = await Promise.all([
 ]);
 ---
 
-<Layout title="Bruce Bybee Photography">
+<Layout title="Bruce Bybee Photography" transparentNav>
   <!-- Page loader overlay -->
   <div id="page-loader" class="fixed inset-0 bg-white z-[100]" style="transition: opacity 0.6s ease;"></div>
-  <!-- Hero Slideshow -->
-  <section class="min-h-screen flex items-center justify-center relative overflow-hidden">
+  <!-- Hero Slideshow (extends under the transparent nav) -->
+  <section class="relative w-full aspect-[2/1] max-h-[85svh] min-h-[420px] overflow-hidden">
     <!-- Slideshow images -->
     {slideshowImages.map((image, index) => (
       <div
@@ -80,15 +80,19 @@ const [servicesImage, contactImage] = await Promise.all([
 
     <!-- Overlay -->
     <div class="absolute inset-0 bg-black/30 z-10"></div>
+    <!-- Mobile legibility gradient behind bottom-left text -->
+    <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent z-10 md:hidden"></div>
 
-    <!-- Content -->
-    <div class="relative z-20 max-w-3xl mx-auto px-8 text-center">
-      <h1 class="text-3xl md:text-5xl lg:text-6xl font-serif leading-tight mb-6 text-white">
-        Intentional Photography for New York's Cultural Landscape
-      </h1>
-      <p class="text-base md:text-lg tracking-wide text-white/85">
-        Manhattan-based photographer specializing in performances, exhibitions, and portraiture.
-      </p>
+    <!-- Content: bottom-left on mobile, vertically centered in the left third on desktop -->
+    <div class="relative z-20 h-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 flex items-end md:items-center pb-10 md:pb-0">
+      <div class="max-w-md md:max-w-[36%] text-left">
+        <h1 class="text-1xl md:text-4xl lg:text-5xl font-serif leading-tight mb-4 md:mb-6 text-white">
+          Intentional Photography for New York's Cultural Landscape
+        </h1>
+        <p class="text-base md:text-lg tracking-wide text-white/85">
+          Manhattan-based photographer specializing in performances, exhibitions, and portraiture.
+        </p>
+      </div>
     </div>
   </section>
 
