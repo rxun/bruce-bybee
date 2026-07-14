@@ -28,17 +28,21 @@ import '../styles/global.css';
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cambo&family=Telex&display=swap"
+    rel="stylesheet"
+  />
   
   <!-- Removed image preloading - using Cloudinary now -->
 </head>
-<body class="bg-white text-gray-900 font-sans">
+<body class="text-gray-900 font-sans">
   <style>
     .font-serif { font-family: 'Crimson Text', serif; }
   </style>
   <nav
     id="site-nav"
     data-transparent={transparentNav ? 'true' : 'false'}
-    class={`fixed top-0 w-full bg-white/90 backdrop-blur-sm z-50 border-b border-gray-100 transition-colors duration-300 ${transparentNav ? 'nav-transparent' : ''}`}
+    class={`fixed top-0 w-full bg-stone-50/90 backdrop-blur-sm z-50 border-b border-gray-100 transition-colors duration-300 ${transparentNav ? 'nav-transparent' : ''}`}
   >
     <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-4">
       <!-- Mobile Layout -->
