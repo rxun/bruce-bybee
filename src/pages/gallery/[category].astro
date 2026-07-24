@@ -193,6 +193,21 @@ try {
   </div>
 
   <style>
+    @media (max-width: 640px) {
+      #photo-grid > div {
+        flex-direction: column;
+        height: auto !important;
+      }
+      #photo-grid > div > div {
+        width: 100% !important;
+        flex: none !important;
+        height: auto !important;
+      }
+      #photo-grid > div > div img {
+        height: auto;
+      }
+    }
+
     #photo-grid img {
       color: transparent;
       background-color: #f3f4f6;

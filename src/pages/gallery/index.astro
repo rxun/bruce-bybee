@@ -59,7 +59,7 @@ const categoryPreviews = await getCategoryPreviews();
   <section class="page-section-wide">
     <h1 class="page-title mb-12">Gallery</h1>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
       {categoryPreviews.map((cat) => (
         <a href={`/gallery/${encodeURIComponent(cat.slug)}`} class="group block relative aspect-[4/3] overflow-hidden">
           {cat.previewSrc ? (
