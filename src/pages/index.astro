@@ -32,8 +32,8 @@ async function getSlideshowImages() {
   try {
     const result = await cloudinary.search
       .expression('folder:bruce-bybee/featured_images/*')
-      .sort_by('created_at', 'desc')
-      .max_results(10)
+      .sort_by('display_name', 'asc')
+      .max_results(20)
       .execute();
 
     return result.resources.map(resource => ({
