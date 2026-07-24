@@ -1,6 +1,8 @@
 ---
 import Layout from '../../components/Layout.astro';
 import { v2 as cloudinary } from 'cloudinary';
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
 
 cloudinary.config({
   cloud_name: import.meta.env.CLOUDINARY_CLOUD_NAME,
@@ -27,10 +29,11 @@ export function getStaticPaths() {
 const { category } = Astro.params;
 const { folder, label } = Astro.props;
 
-// Fetch all photos from this category's folder
-let photos: { src: string; srcSet: string; fullSrc: string; name: string; width: number; height: number }[] = [];
-type Photo = { src: string; srcSet: string; fullSrc: string; name: string; width: number; height: number; originalIndex: number };
-let photoColumns: [Photo[], Photo[], Photo[]] = [[], [], []];
+let photos: { publicId: string; src: string; srcSet: string; fullSrc: string; name: string; width: number; height: number }[] = [];
+type IndexedPhoto = { publicId: string; src: string; srcSet: string; fullSrc: string; name: string; width: number; height: number; index: number };
+type JustifiedRow = { photos: IndexedPhoto[]; height: number; isLastRow: boolean };
+let rows: JustifiedRow[] = [];
+
 try {
   const result = await cloudinary.search
     .expression(`folder:"${folder}"`)
@@ -41,6 +44,7 @@ try {
   photos = result.resources.map((resource: any) => {
     const name = resource.public_id.split('/').pop().replace(/\.[^/.]+$/, '');
     return {
+      publicId: resource.public_id,
       src: cloudinary.url(resource.public_id, {
         width: 800,
         crop: 'limit',
@@ -68,10 +72,52 @@ try {
       height: resource.height,
     };
   });
-  photoColumns = [[], [], []];
+
+  // Apply custom order if a per-category order file exists
+  const orderFile = join(process.cwd(), 'src', 'data', `${category.toLowerCase()}-order.json`);
+  if (existsSync(orderFile)) {
+    const order: string[] = JSON.parse(readFileSync(orderFile, 'utf-8'));
+    const photoMap = new Map(photos.map(p => [p.publicId, p]));
+    const orderedIds = new Set(order);
+    photos = [
+      ...order.map(id => photoMap.get(id)).filter((p): p is typeof photos[0] => !!p),
+      ...photos.filter(p => !orderedIds.has(p.publicId)),
+    ];
+  }
+
+  // Justified layout: pack photos into rows so every photo in a row shares the same height
+  const CONTAINER_WIDTH = 1200;
+  const GAP = 8;
+  const TARGET_HEIGHT = 304;
+  const MIN_HEIGHT = 265;
+
+  let currentRow: IndexedPhoto[] = [];
+  let arSum = 0;
+
   photos.forEach((photo, i) => {
-    photoColumns[i % 3].push({ ...photo, originalIndex: i });
+    const ar = photo.width / photo.height;
+    const newArSum = arSum + ar;
+    const newCount = currentRow.length + 1;
+    const predictedH = (CONTAINER_WIDTH - (newCount - 1) * GAP) / newArSum;
+
+    if (currentRow.length > 0 && predictedH < MIN_HEIGHT) {
+      // Adding this photo would make the row too short — close the row without it
+      rows.push({
+        photos: currentRow,
+        height: Math.round((CONTAINER_WIDTH - (currentRow.length - 1) * GAP) / arSum),
+        isLastRow: false,
+      });
+      currentRow = [{ ...photo, index: i }];
+      arSum = ar;
+    } else {
+      currentRow.push({ ...photo, index: i });
+      arSum = newArSum;
+    }
   });
+
+  if (currentRow.length > 0) {
+    rows.push({ photos: currentRow, height: TARGET_HEIGHT, isLastRow: true });
+  }
 } catch (e) {
   console.error('Error fetching photos:', e);
 }
@@ -86,28 +132,30 @@ try {
     <h1 class="page-title mb-12">{label}</h1>
 
     <!-- Photo Grid -->
-    {photos.length > 0 ? (
-      <div id="photo-grid" class="flex flex-col md:flex-row gap-4 opacity-0">
-        {photoColumns.map((col) => (
-          <div class="flex-1 flex flex-col gap-4">
-            {col.map((photo) => (
+    {rows.length > 0 ? (
+      <div id="photo-grid" class="flex flex-col opacity-0" style="gap: 8px;">
+        {rows.map((row) => (
+          <div class="flex" style={`height: ${row.height}px; gap: 8px;`}>
+            {row.photos.map((photo) => (
               <div
                 class="photo-item-animate overflow-hidden cursor-pointer"
-                style={`animation-delay: ${Math.min(photo.originalIndex, 15) * 0.06}s`}
+                style={row.isLastRow
+                  ? `width: ${Math.round(photo.width / photo.height * row.height)}px; flex-shrink: 0; animation-delay: ${Math.min(photo.index, 15) * 0.06}s`
+                  : `flex: ${photo.width / photo.height}; animation-delay: ${Math.min(photo.index, 15) * 0.06}s`}
               >
                 <img
-                  src={photo.originalIndex < 9 ? photo.src : ''}
-                  srcset={photo.originalIndex < 9 ? photo.srcSet : ''}
+                  src={photo.index < 9 ? photo.src : ''}
+                  srcset={photo.index < 9 ? photo.srcSet : ''}
                   data-src={photo.src}
                   data-srcset={photo.srcSet}
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   alt={photo.name}
                   width={photo.width}
                   height={photo.height}
-                  class={`w-full h-auto object-cover transition-opacity duration-300 hover:opacity-90 ${photo.originalIndex >= 9 ? 'lazy-image' : ''}`}
-                  data-photo-index={photo.originalIndex}
+                  class={`w-full h-full object-cover transition-opacity duration-300 hover:opacity-90 ${photo.index >= 9 ? 'lazy-image' : ''}`}
+                  data-photo-index={photo.index}
                   data-full-src={photo.fullSrc}
-                  loading={photo.originalIndex < 9 ? 'eager' : 'lazy'}
+                  loading={photo.index < 9 ? 'eager' : 'lazy'}
                 />
               </div>
             ))}
@@ -145,7 +193,7 @@ try {
   </div>
 
   <style>
-    .columns-1 img {
+    #photo-grid img {
       color: transparent;
       background-color: #f3f4f6;
     }
@@ -269,8 +317,7 @@ try {
       const modalPrev = document.getElementById('modal-prev')!;
       const modalNext = document.getElementById('modal-next')!;
       const loadingAnimation = document.getElementById('loading-animation')!;
-      const allImages = Array.from(document.querySelectorAll('[data-photo-index]'))
-        .sort((a, b) => parseInt(a.getAttribute('data-photo-index')!) - parseInt(b.getAttribute('data-photo-index')!));
+      const allImages = document.querySelectorAll('[data-photo-index]');
       let currentIndex = 0;
 
       const photosArray = allImages.map((img) => ({
@@ -345,10 +392,7 @@ try {
         }, 200);
       }
 
-      allImages.forEach((img) => {
-        const photoIndex = parseInt(img.getAttribute('data-photo-index')!);
-        img.addEventListener('click', () => openModal(photoIndex));
-      });
+      allImages.forEach((img, i) => img.addEventListener('click', () => openModal(i)));
       modalClose.addEventListener('click', closeModal);
       modalPrev.addEventListener('click', () => navigate(-1));
       modalNext.addEventListener('click', () => navigate(1));
