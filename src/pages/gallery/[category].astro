@@ -10,12 +10,12 @@ cloudinary.config({
 
 export function getStaticPaths() {
   const categories = [
-    { slug: 'Concerts', folder: 'bruce-bybee/Concerts', label: 'Concerts' },
-    { slug: 'Theater', folder: 'bruce-bybee/Theater', label: 'Theater & Performance' },
+    // { slug: 'Concerts', folder: 'bruce-bybee/Concerts', label: 'Concerts' },
+    { slug: 'Performances', folder: 'bruce-bybee/Performance', label: 'Performances' },
     { slug: 'Exhibitions', folder: 'bruce-bybee/Exhibitions', label: 'Exhibitions' },
-    { slug: 'Talks and Public Programs', folder: 'bruce-bybee/Talks and Public Programs', label: 'Talks & Public Programs' },
+    // { slug: 'Talks and Public Programs', folder: 'bruce-bybee/Talks and Public Programs', label: 'Talks & Public Programs' },
     { slug: 'Portraits', folder: 'bruce-bybee/Portraits', label: 'Portraiture' },
-    { slug: 'Conferences and Special Events', folder: 'bruce-bybee/Conferences and Special Events', label: 'Special Events' },
+    { slug: 'Special Events', folder: 'bruce-bybee/Conferences and Special Events', label: 'Special Events' },
   ];
 
   return categories.map((cat) => ({
@@ -29,10 +29,12 @@ const { folder, label } = Astro.props;
 
 // Fetch all photos from this category's folder
 let photos: { src: string; srcSet: string; fullSrc: string; name: string; width: number; height: number }[] = [];
+type Photo = { src: string; srcSet: string; fullSrc: string; name: string; width: number; height: number; originalIndex: number };
+let photoColumns: [Photo[], Photo[], Photo[]] = [[], [], []];
 try {
   const result = await cloudinary.search
     .expression(`folder:"${folder}"`)
-    .sort_by('created_at', 'desc')
+    .sort_by('display_name', 'asc')
     .max_results(100)
     .execute();
 
@@ -66,6 +68,10 @@ try {
       height: resource.height,
     };
   });
+  photoColumns = [[], [], []];
+  photos.forEach((photo, i) => {
+    photoColumns[i % 3].push({ ...photo, originalIndex: i });
+  });
 } catch (e) {
   console.error('Error fetching photos:', e);
 }
@@ -81,26 +87,30 @@ try {
 
     <!-- Photo Grid -->
     {photos.length > 0 ? (
-      <div id="photo-grid" class="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4 opacity-0">
-        {photos.map((photo, index) => (
-          <div
-            class="photo-item-animate break-inside-avoid overflow-hidden cursor-pointer"
-            style={`animation-delay: ${Math.min(index, 15) * 0.06}s`}
-          >
-            <img
-              src={index < 9 ? photo.src : ''}
-              srcset={index < 9 ? photo.srcSet : ''}
-              data-src={photo.src}
-              data-srcset={photo.srcSet}
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              alt={photo.name}
-              width={photo.width}
-              height={photo.height}
-              class={`w-full h-auto object-cover transition-opacity duration-300 hover:opacity-90 ${index >= 9 ? 'lazy-image' : ''}`}
-              data-photo-index={index}
-              data-full-src={photo.fullSrc}
-              loading={index < 9 ? 'eager' : 'lazy'}
-            />
+      <div id="photo-grid" class="flex flex-col md:flex-row gap-4 opacity-0">
+        {photoColumns.map((col) => (
+          <div class="flex-1 flex flex-col gap-4">
+            {col.map((photo) => (
+              <div
+                class="photo-item-animate overflow-hidden cursor-pointer"
+                style={`animation-delay: ${Math.min(photo.originalIndex, 15) * 0.06}s`}
+              >
+                <img
+                  src={photo.originalIndex < 9 ? photo.src : ''}
+                  srcset={photo.originalIndex < 9 ? photo.srcSet : ''}
+                  data-src={photo.src}
+                  data-srcset={photo.srcSet}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  alt={photo.name}
+                  width={photo.width}
+                  height={photo.height}
+                  class={`w-full h-auto object-cover transition-opacity duration-300 hover:opacity-90 ${photo.originalIndex >= 9 ? 'lazy-image' : ''}`}
+                  data-photo-index={photo.originalIndex}
+                  data-full-src={photo.fullSrc}
+                  loading={photo.originalIndex < 9 ? 'eager' : 'lazy'}
+                />
+              </div>
+            ))}
           </div>
         ))}
       </div>
@@ -259,10 +269,11 @@ try {
       const modalPrev = document.getElementById('modal-prev')!;
       const modalNext = document.getElementById('modal-next')!;
       const loadingAnimation = document.getElementById('loading-animation')!;
-      const allImages = document.querySelectorAll('[data-photo-index]');
+      const allImages = Array.from(document.querySelectorAll('[data-photo-index]'))
+        .sort((a, b) => parseInt(a.getAttribute('data-photo-index')!) - parseInt(b.getAttribute('data-photo-index')!));
       let currentIndex = 0;
 
-      const photosArray = Array.from(allImages).map((img) => ({
+      const photosArray = allImages.map((img) => ({
         src: img.getAttribute('data-full-src') || (img as HTMLImageElement).src,
         alt: (img as HTMLImageElement).alt,
       }));
@@ -334,7 +345,10 @@ try {
         }, 200);
       }
 
-      allImages.forEach((img, i) => img.addEventListener('click', () => openModal(i)));
+      allImages.forEach((img) => {
+        const photoIndex = parseInt(img.getAttribute('data-photo-index')!);
+        img.addEventListener('click', () => openModal(photoIndex));
+      });
       modalClose.addEventListener('click', closeModal);
       modalPrev.addEventListener('click', () => navigate(-1));
       modalNext.addEventListener('click', () => navigate(1));

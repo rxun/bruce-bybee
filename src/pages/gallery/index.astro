@@ -9,12 +9,12 @@ cloudinary.config({
 });
 
 const categories = [
-  { label: 'Concerts', folder: 'bruce-bybee/Concerts' },
-  { label: 'Theater & Performance', folder: 'bruce-bybee/Theater' },
-  { label: 'Exhibitions', folder: 'bruce-bybee/Exhibitions' },
-  { label: 'Talks & Public Programs', folder: 'bruce-bybee/Talks and Public Programs' },
-  { label: 'Portraiture', folder: 'bruce-bybee/Portraits' },
-  { label: 'Special Events', folder: 'bruce-bybee/Conferences and Special Events' },
+  // { label: 'Concerts', slug: 'Concerts', folder: 'bruce-bybee/Concerts' },
+  { label: 'Performances', slug: 'Performances', folder: 'bruce-bybee/Performance' },
+  { label: 'Exhibitions', slug: 'Exhibitions', folder: 'bruce-bybee/Exhibitions' },
+  // { label: 'Talks & Public Programs', slug: 'Talks and Public Programs', folder: 'bruce-bybee/Talks and Public Programs' },
+  { label: 'Portraiture', slug: 'Portraits', folder: 'bruce-bybee/Portraits' },
+  { label: 'Special Events', slug: 'Special Events', folder: 'bruce-bybee/Conferences and Special Events' },
 ];
 
 // Fetch one preview image per category
@@ -61,7 +61,7 @@ const categoryPreviews = await getCategoryPreviews();
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {categoryPreviews.map((cat) => (
-        <a href={`/gallery/${encodeURIComponent(cat.folder.split('/').pop()!)}`} class="group block relative aspect-[4/3] overflow-hidden">
+        <a href={`/gallery/${encodeURIComponent(cat.slug)}`} class="group block relative aspect-[4/3] overflow-hidden">
           {cat.previewSrc ? (
             <img
               src={cat.previewSrc}
