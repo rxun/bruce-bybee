@@ -13,7 +13,7 @@ const categories = [
   { label: 'Performances', slug: 'Performances', folder: 'bruce-bybee/Performance' },
   { label: 'Exhibitions', slug: 'Exhibitions', folder: 'bruce-bybee/Exhibitions' },
   // { label: 'Talks & Public Programs', slug: 'Talks and Public Programs', folder: 'bruce-bybee/Talks and Public Programs' },
-  { label: 'Portraiture', slug: 'Portraits', folder: 'bruce-bybee/Portraits' },
+  { label: 'Portraits', slug: 'Portraits', folder: 'bruce-bybee/Portraits' },
   { label: 'Special Events', slug: 'Special Events', folder: 'bruce-bybee/Conferences and Special Events' },
 ];
 
@@ -23,9 +23,7 @@ async function getCategoryPreviews() {
     categories.map(async (cat) => {
       try {
         const result = await cloudinary.search
-          .expression(`folder:"${cat.folder}"`)
-          .sort_by('created_at', 'desc')
-          .max_results(1)
+          .expression(`folder="bruce-bybee/Thumbnails" AND display_name="${cat.label}"`)
           .execute();
 
         const resource = result.resources?.[0];
