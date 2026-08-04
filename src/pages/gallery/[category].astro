@@ -17,7 +17,7 @@ export function getStaticPaths() {
     { slug: 'Exhibitions', folder: 'bruce-bybee/Exhibitions', label: 'Exhibitions' },
     // { slug: 'Talks and Public Programs', folder: 'bruce-bybee/Talks and Public Programs', label: 'Talks & Public Programs' },
     { slug: 'Portraits', folder: 'bruce-bybee/Portraits', label: 'Portraits' },
-    { slug: 'Special Events', folder: 'bruce-bybee/Conferences and Special Events', label: 'Special Events' },
+    { slug: 'Special Events', folder: 'bruce-bybee/Special Events', label: 'Special Events' },
   ];
 
   return categories.map((cat) => ({
@@ -168,7 +168,7 @@ try {
   </section>
 
   <!-- Photo Modal -->
-  <div id="photo-modal" class="fixed inset-0 bg-black z-50 hidden items-center justify-center transition-all duration-300 ease-out opacity-0">
+  <div id="photo-modal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center transition-all duration-300 ease-out opacity-0">
     <div class="relative w-full h-full flex items-center justify-center">
       <button id="modal-close" class="absolute top-4 right-4 text-white text-3xl transition-colors duration-500 ease-in-out hover:text-gray-300 z-20">
         &times;
