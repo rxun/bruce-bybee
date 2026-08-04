@@ -86,8 +86,9 @@ const [servicesImage, contactImage] = await Promise.all([
     <!-- Content: bottom-left on mobile, vertically centered in the left third on desktop -->
     <div class="relative z-20 h-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 flex items-end md:pb-0">
       <div class="max-w-md md:max-w-[50%] text-left">
-        <h1 class="text-3xl md:text-4xl lg:text-5xl font-serif leading-tight mb-4 md:mb-6 text-white">
-          Intentional Photography for New York's Cultural Landscape
+        <h1 class="font-serif leading-tight mb-4 md:mb-6 text-white text-[min(6.5vw,1.875rem)] md:text-[min(3.5vw,2.5rem)]">
+          <span class="block">Intentional Photography for</span>
+          <span class="block">New York's Cultural Landscape</span>
         </h1>
         <!-- <p class="text-base md:text-lg tracking-wide text-white/85">
           Manhattan-based photographer specializing in performances, exhibitions, and portraiture.
@@ -97,7 +98,7 @@ const [servicesImage, contactImage] = await Promise.all([
   </section>
 
   <!-- Intro Section -->
-  <section class="page-section">
+  <section class="max-w-5xl mx-auto px-8 py-8">
     <p class="body-text">
       Bruce Bybee is a Manhattan-based photographer working with artists, institutions, and cultural organizations. He creates atmospheric, precise imagery for live performances, exhibitions, public programs, and portrait sessions. With a background in film and over a decade of experience spanning analog and digital photography, he brings clarity, structure, and consistency to every assignment. Available for commissions in Manhattan, Brooklyn, and beyond.
     </p>

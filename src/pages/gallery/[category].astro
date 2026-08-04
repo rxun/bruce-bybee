@@ -332,7 +332,7 @@ try {
       const modalPrev = document.getElementById('modal-prev')!;
       const modalNext = document.getElementById('modal-next')!;
       const loadingAnimation = document.getElementById('loading-animation')!;
-      const allImages = document.querySelectorAll('[data-photo-index]');
+      const allImages = Array.from(document.querySelectorAll('[data-photo-index]'));
       let currentIndex = 0;
 
       const photosArray = allImages.map((img) => ({
