@@ -116,7 +116,16 @@ try {
   });
 
   if (currentRow.length > 0) {
-    rows.push({ photos: currentRow, height: TARGET_HEIGHT, isLastRow: true });
+    const naturalHeight = Math.round((CONTAINER_WIDTH - (currentRow.length - 1) * GAP) / arSum);
+    // If naturalHeight <= TARGET_HEIGHT, photos are wide enough that they'd overflow at
+    // TARGET_HEIGHT — use flex sizing at the natural height so they fill the full width.
+    // Otherwise, photos are sparse/tall; use TARGET_HEIGHT with fixed widths (centered).
+    const wouldOverflow = naturalHeight <= TARGET_HEIGHT;
+    rows.push({
+      photos: currentRow,
+      height: wouldOverflow ? naturalHeight : TARGET_HEIGHT,
+      isLastRow: !wouldOverflow,
+    });
   }
 } catch (e) {
   console.error('Error fetching photos:', e);
@@ -135,7 +144,7 @@ try {
     {rows.length > 0 ? (
       <div id="photo-grid" class="flex flex-col opacity-0" style="gap: 8px;">
         {rows.map((row) => (
-          <div class="flex" style={`height: ${row.height}px; gap: 8px;`}>
+          <div class={`flex${row.isLastRow ? ' justify-center' : ''}`} style={`height: ${row.height}px; gap: 8px;`}>
             {row.photos.map((photo) => (
               <div
                 class="photo-item-animate overflow-hidden cursor-pointer"
